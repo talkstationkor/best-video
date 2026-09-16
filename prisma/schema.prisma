@@ -1,0 +1,187 @@
+// Best Video — Video Review & Approval System
+// Database schema. SQLite for easy local/dev use; swap the datasource
+// provider to postgresql for a shared production deployment without
+// changing any application code (all queries go through Prisma).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id        String   @id @default(cuid())
+  name      String
+  team      String
+  role      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, team])
+
+  projectsCreated   Project[]         @relation("ProjectCreatedBy")
+  projectsAssigned  Project[]         @relation("ProjectAssignedEditor")
+  versionsSubmitted ProjectVersion[]  @relation("VersionSubmittedBy")
+  feedbackAuthored  Feedback[]        @relation("FeedbackAuthor")
+  feedbackResolved  Feedback[]        @relation("FeedbackResolvedBy")
+  approvals         ProjectVersion[]  @relation("VersionApprovedBy")
+  activityLogs      ActivityLog[]     @relation("ActivityActor")
+  notifications     Notification[]    @relation("NotificationRecipient")
+  trainingUploads   TrainingSchoolUpload[] @relation("TrainingSchoolUploadedBy")
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  projectName    String
+  details        String?
+  team           String
+  status         String   @default("DRAFT")
+  workflowStatus String   @default("EDITOR_WORKING")
+  currentVersion Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   Member   @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+
+  assignedEditorId String?
+  assignedEditor   Member? @relation("ProjectAssignedEditor", fields: [assignedEditorId], references: [id])
+
+  finalVersionId String? @unique
+  finalVersion   ProjectVersion? @relation("ProjectFinalVersion", fields: [finalVersionId], references: [id])
+
+  approvedAt   DateTime?
+  approvedById String?
+
+  versions      ProjectVersion[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  trainingSchoolUploads TrainingSchoolUpload[]
+
+  @@index([status])
+  @@index([team])
+  @@index([assignedEditorId])
+  @@index([finalVersionId])
+}
+
+model ProjectVersion {
+  id            String  @id @default(cuid())
+  projectId     String
+  project       Project @relation(fields: [projectId], references: [id])
+
+  versionNumber Int
+  videoUrl      String
+  notes         String?
+
+  status      String   @default("REVIEW_REQUIRED")
+  submittedAt DateTime @default(now())
+
+  submittedById String
+  submittedBy   Member @relation("VersionSubmittedBy", fields: [submittedById], references: [id])
+
+  approvedAt   DateTime?
+  approvedById String?
+  approvedBy   Member? @relation("VersionApprovedBy", fields: [approvedById], references: [id])
+
+  feedback     Feedback[]
+  activityLogs ActivityLog[]
+
+  finalForProject Project? @relation("ProjectFinalVersion")
+
+  trainingSchoolUploads TrainingSchoolUpload[]
+
+  @@unique([projectId, versionNumber])
+  @@index([projectId])
+}
+
+model Feedback {
+  id        String         @id @default(cuid())
+  versionId String
+  version   ProjectVersion @relation(fields: [versionId], references: [id])
+
+  authorId String
+  author   Member @relation("FeedbackAuthor", fields: [authorId], references: [id])
+
+  message   String
+  timestamp String?
+  status    String @default("OPEN")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   Member? @relation("FeedbackResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([versionId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  recipientId String
+  recipient   Member @relation("NotificationRecipient", fields: [recipientId], references: [id])
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  versionId String?
+
+  @@index([recipientId, isRead])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  detail    String?
+  team      String
+  createdAt DateTime @default(now())
+
+  actorId String
+  actor   Member @relation("ActivityActor", fields: [actorId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  versionId String?
+  version   ProjectVersion? @relation(fields: [versionId], references: [id])
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model TrainingSchoolUpload {
+  id String @id @default(cuid())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  versionId String
+  version   ProjectVersion @relation(fields: [versionId], references: [id])
+
+  status String @default("UPLOAD_REQUIRED")
+
+  trainingSchoolUrl String?
+
+  uploadedById String?
+  uploadedBy   Member? @relation("TrainingSchoolUploadedBy", fields: [uploadedById], references: [id])
+
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, versionId])
+  @@index([projectId])
+  @@index([versionId])
+  @@index([status])
+}

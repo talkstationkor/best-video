@@ -1,0 +1,182 @@
+// Best Video — Video Review & Approval System
+// Database schema. SQLite for easy local/dev use; swap the datasource
+// provider to postgresql for a shared production deployment without
+// changing any application code (all queries go through Prisma).
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------------------------------------------------------------------
+// Team & Role are intentionally separate from Member. Role is never encoded
+// as a constant tied to a person's name anywhere in application code —
+// every permission check reads a Member row's role from the database.
+// ---------------------------------------------------------------------------
+
+enum TeamName {
+  BEST_VIDEO_TEAM
+  TMT
+}
+
+enum RoleName {
+  SUBMITTER
+  REVIEWER
+  ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  REVIEW_REQUIRED
+  REVISION_REQUESTED
+  APPROVED
+}
+
+enum FeedbackStatus {
+  OPEN
+  RESOLVED
+}
+
+model Member {
+  id        String   @id @default(cuid())
+  name      String
+  team      TeamName
+  role      RoleName
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // A person can be re-used across teams over time (rare) but within one
+  // team a display name should be unique so pickers stay unambiguous.
+  @@unique([name, team])
+
+  projectsCreated   Project[]         @relation("ProjectCreatedBy")
+  versionsSubmitted ProjectVersion[]  @relation("VersionSubmittedBy")
+  feedbackAuthored  Feedback[]        @relation("FeedbackAuthor")
+  feedbackResolved  Feedback[]        @relation("FeedbackResolvedBy")
+  approvals         ProjectVersion[]  @relation("VersionApprovedBy")
+  activityLogs      ActivityLog[]     @relation("ActivityActor")
+  notifications     Notification[]    @relation("NotificationRecipient")
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  projectName    String
+  details        String?
+  team           TeamName
+  status         ProjectStatus @default(DRAFT)
+  currentVersion Int           @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   Member   @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+
+  approvedAt   DateTime?
+  approvedById String?
+
+  versions      ProjectVersion[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+
+  @@index([status])
+  @@index([team])
+}
+
+model ProjectVersion {
+  id            String        @id @default(cuid())
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id])
+  versionNumber Int
+  videoUrl      String
+  notes         String?
+  status        ProjectStatus @default(REVIEW_REQUIRED)
+
+  submittedAt   DateTime @default(now())
+  submittedById String
+  submittedBy   Member   @relation("VersionSubmittedBy", fields: [submittedById], references: [id])
+
+  approvedAt   DateTime?
+  approvedById String?
+  approvedBy   Member?   @relation("VersionApprovedBy", fields: [approvedById], references: [id])
+
+  feedback     Feedback[]
+  activityLogs ActivityLog[]
+
+  // A project can never have two rows with the same version number —
+  // this is the DB-level guarantee behind "no duplicate V3".
+  @@unique([projectId, versionNumber])
+  @@index([projectId])
+}
+
+model Feedback {
+  id        String         @id @default(cuid())
+  versionId String
+  version   ProjectVersion @relation(fields: [versionId], references: [id])
+
+  authorId String
+  author   Member @relation("FeedbackAuthor", fields: [authorId], references: [id])
+
+  message   String
+  timestamp String? // free-text video timestamp, e.g. "02:13"
+  status    FeedbackStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   Member?   @relation("FeedbackResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([versionId])
+}
+
+enum NotificationType {
+  PROJECT_CREATED
+  VERSION_SUBMITTED
+  FEEDBACK_ADDED
+  REVISION_REQUESTED
+  VIDEO_APPROVED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  recipientId String
+  recipient   Member @relation("NotificationRecipient", fields: [recipientId], references: [id])
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  versionId String?
+
+  @@index([recipientId, isRead])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String // e.g. "PROJECT_CREATED", "VERSION_SUBMITTED", "FEEDBACK_ADDED"...
+  detail    String? // short human-readable extra context
+  team      TeamName
+  createdAt DateTime @default(now())
+
+  actorId String
+  actor   Member @relation("ActivityActor", fields: [actorId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  versionId String?
+  version   ProjectVersion? @relation(fields: [versionId], references: [id])
+
+  @@index([projectId])
+  @@index([createdAt])
+}

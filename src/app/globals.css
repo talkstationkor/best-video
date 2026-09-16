@@ -1,0 +1,91 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.label-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 120ms ease;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: white;
+}
+
+.input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
