@@ -2,14 +2,15 @@
   "name": "best-video",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "prisma:migrate": "prisma migrate dev --name init",
-    "prisma:generate": "prisma generate",
-    "seed": "tsx prisma/seed.ts"
-  },
+"scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "postinstall": "prisma generate",
+  "prisma:migrate": "prisma migrate dev --name init",
+  "prisma:generate": "prisma generate",
+  "seed": "tsx prisma/seed.ts"
+},
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
