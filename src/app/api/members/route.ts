@@ -4,42 +4,50 @@ import { getCurrentMember } from "@/lib/session";
 import { permissions, ForbiddenError } from "@/lib/permissions";
 import { requireNonEmpty, ValidationError } from "@/lib/validation";
 
-// GET /api/members?team=BEST_VIDEO_TEAM
 export async function GET(req: NextRequest) {
-  const team = req.nextUrl.searchParams.get("team");
-  const full = req.nextUrl.searchParams.get("full") === "1";
+  try {
+    const team = req.nextUrl.searchParams.get("team");
+    const full = req.nextUrl.searchParams.get("full") === "1";
 
-  if (full) {
-    const member = await getCurrentMember();
+    if (full) {
+      const member = await getCurrentMember();
 
-    if (!member || !permissions.canManageMembers(member)) {
-      return NextResponse.json(
-        { error: "You don't have permission to view this." },
-        { status: 403 }
-      );
+      if (!member || !permissions.canManageMembers(member)) {
+        return NextResponse.json(
+          { error: "You don't have permission to view this." },
+          { status: 403 }
+        );
+      }
+
+      const members = await prisma.member.findMany({
+        orderBy: [{ team: "asc" }, { name: "asc" }]
+      });
+
+      return NextResponse.json({ members });
     }
 
     const members = await prisma.member.findMany({
-      orderBy: [{ team: "asc" }, { name: "asc" }]
+      where: {
+        isActive: true,
+        ...(team ? { team } : {})
+      },
+      select: {
+        id: true,
+        name: true,
+        team: true
+      },
+      orderBy: { name: "asc" }
     });
 
     return NextResponse.json({ members });
+  } catch (err) {
+    console.error("GET /api/members failed:", err);
+
+    return NextResponse.json(
+      { error: "Failed to load members." },
+      { status: 500 }
+    );
   }
-
-  const members = await prisma.member.findMany({
-    where: {
-      isActive: true,
-      ...(team ? { team } : {})
-    },
-    select: {
-      id: true,
-      name: true,
-      team: true
-    },
-    orderBy: { name: "asc" }
-  });
-
-  return NextResponse.json({ members });
 }
 
 // POST — Admin only: create a new Member record.
