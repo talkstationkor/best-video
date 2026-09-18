@@ -1,6 +1,8 @@
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import StatusBadge from "@/components/StatusBadge";
+import NewProjectButton from "@/components/NewProjectButton";
+import ProjectText from "@/components/ProjectText";
 import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/session";
 import { permissions } from "@/lib/permissions";
@@ -27,9 +29,16 @@ function getProjectSituation(project: {
 
   if (trainingSchoolCompleted) {
     return {
-      label: "완료",
-      description: "Training School 업로드 완료",
-      nextAction: "없음",
+      ko: {
+        label: "완료",
+        description: "Training School 업로드 완료",
+        nextAction: "없음"
+      },
+      en: {
+        label: "Completed",
+        description: "Training School upload completed",
+        nextAction: "None"
+      },
       className: "bg-green-50 text-green-700"
     };
   }
@@ -39,9 +48,16 @@ function getProjectSituation(project: {
     project.status === "FINAL_APPROVED"
   ) {
     return {
-      label: "최종 승인",
-      description: "최종 영상 확정",
-      nextAction: "Training School 업로드",
+      ko: {
+        label: "최종 승인",
+        description: "최종 영상 확정",
+        nextAction: "Training School 업로드"
+      },
+      en: {
+        label: "Final Approved",
+        description: "Final video approved",
+        nextAction: "Training School upload"
+      },
       className: "bg-purple-50 text-purple-700"
     };
   }
@@ -51,9 +67,16 @@ function getProjectSituation(project: {
     project.status === "Revision Requested"
   ) {
     return {
-      label: "수정 요청",
-      description: "Best Video/TMT의 피드백 반영 필요",
-      nextAction: "Editor 수정",
+      ko: {
+        label: "수정 요청",
+        description: "Best Video/TMT의 피드백 반영 필요",
+        nextAction: "Editor 수정"
+      },
+      en: {
+        label: "Revision Requested",
+        description: "Best Video/TMT feedback needs to be addressed",
+        nextAction: "Editor revision"
+      },
       className: "bg-red-50 text-red-700"
     };
   }
@@ -63,9 +86,16 @@ function getProjectSituation(project: {
     project.workflowStatus === "Editor working"
   ) {
     return {
-      label: "Editor 수정 중",
-      description: "영상 작업 진행 중",
-      nextAction: "Editor 작업 완료",
+      ko: {
+        label: "Editor 수정 중",
+        description: "영상 작업 진행 중",
+        nextAction: "Editor 작업 완료"
+      },
+      en: {
+        label: "Editor Working",
+        description: "Video editing in progress",
+        nextAction: "Complete editor work"
+      },
       className: "bg-blue-50 text-blue-700"
     };
   }
@@ -75,9 +105,16 @@ function getProjectSituation(project: {
     project.workflowStatus === "Best Video review"
   ) {
     return {
-      label: "Best Video 검토 중",
-      description: "Best Video Team 검토 단계",
-      nextAction: "검토 또는 수정 요청",
+      ko: {
+        label: "Best Video 검토 중",
+        description: "Best Video Team 검토 단계",
+        nextAction: "검토 또는 수정 요청"
+      },
+      en: {
+        label: "Best Video Review",
+        description: "Best Video Team review stage",
+        nextAction: "Review or request revision"
+      },
       className: "bg-yellow-50 text-yellow-700"
     };
   }
@@ -87,17 +124,31 @@ function getProjectSituation(project: {
     project.workflowStatus === "Our Team review"
   ) {
     return {
-      label: "TMT 검토 중",
-      description: "TMT 검토 단계",
-      nextAction: "승인 또는 수정 요청",
+      ko: {
+        label: "TMT 검토 중",
+        description: "TMT 검토 단계",
+        nextAction: "승인 또는 수정 요청"
+      },
+      en: {
+        label: "TMT Review",
+        description: "TMT review stage",
+        nextAction: "Approve or request revision"
+      },
       className: "bg-orange-50 text-orange-700"
     };
   }
 
   return {
-    label: "진행 중",
-    description: "프로젝트 진행 중",
-    nextAction: "확인 필요",
+    ko: {
+      label: "진행 중",
+      description: "프로젝트 진행 중",
+      nextAction: "확인 필요"
+    },
+    en: {
+      label: "In Progress",
+      description: "Project in progress",
+      nextAction: "Action required"
+    },
     className: "bg-gray-50 text-gray-700"
   };
 }
@@ -110,11 +161,14 @@ export default async function ProjectsPage() {
       <AppShell>
         <div className="rounded-2xl border border-gray-200 bg-white p-8">
           <h1 className="text-xl font-semibold text-gray-900">
-            Projects
+            <ProjectText ko="프로젝트" en="Projects" />
           </h1>
 
           <p className="mt-2 text-sm text-gray-500">
-            먼저 로그인할 사용자를 선택해주세요.
+            <ProjectText
+              ko="먼저 로그인할 사용자를 선택해주세요."
+              en="Please select a user to log in first."
+            />
           </p>
         </div>
       </AppShell>
@@ -122,6 +176,7 @@ export default async function ProjectsPage() {
   }
 
   const canViewAll = permissions.canViewAllProjects(member);
+  const canCreateProject = permissions.canCreateProject(member);
 
   const projects = await prisma.project.findMany({
     where: canViewAll
@@ -192,14 +247,21 @@ export default async function ProjectsPage() {
   return (
     <AppShell wide>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Projects
-          </h1>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              <ProjectText ko="프로젝트" en="Projects" />
+            </h1>
 
-          <p className="mt-1 text-sm text-gray-500">
-            전체 프로젝트의 현재 진행 상황과 다음 액션을 확인할 수 있습니다.
-          </p>
+            <p className="mt-1 text-sm text-gray-500">
+              <ProjectText
+                ko="전체 프로젝트의 현재 진행 상황과 다음 액션을 확인할 수 있습니다."
+                en="View the current status and next actions for all projects."
+              />
+            </p>
+          </div>
+
+          <NewProjectButton canCreate={canCreateProject} />
         </div>
 
         <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -207,47 +269,50 @@ export default async function ProjectsPage() {
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
                 <th className="w-[13%] whitespace-nowrap px-4 py-3 text-center font-semibold text-gray-700">
-                  Project
+                  <ProjectText ko="프로젝트" en="Project" />
                 </th>
 
                 <th className="w-[10%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  Team
+                  <ProjectText ko="팀" en="Team" />
                 </th>
 
                 <th className="w-[5%] whitespace-nowrap px-2 py-3 text-center font-semibold text-gray-700">
-                  Version
+                  <ProjectText ko="버전" en="Version" />
                 </th>
 
                 <th className="w-[13%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  현재 상황
+                  <ProjectText ko="현재 상황" en="Current Status" />
                 </th>
 
                 <th className="w-[5%] whitespace-nowrap px-2 py-3 text-center font-semibold text-gray-700">
-                  피드백
+                  <ProjectText ko="피드백" en="Feedback" />
                 </th>
 
                 <th className="w-[13%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  다음 액션
+                  <ProjectText ko="다음 액션" en="Next Action" />
                 </th>
 
                 <th className="w-[8%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  담당 Editor
+                  <ProjectText ko="담당 Editor" en="Assigned Editor" />
                 </th>
 
                 <th className="w-[8%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  Status
+                  <ProjectText ko="상태" en="Status" />
                 </th>
 
                 <th className="w-[10%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  Submitted By
+                  <ProjectText ko="제출자" en="Submitted By" />
                 </th>
 
                 <th className="w-[6%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  Updated
+                  <ProjectText ko="업데이트" en="Updated" />
                 </th>
 
                 <th className="w-[9%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
-                  Training School
+                  <ProjectText
+                    ko="Training School"
+                    en="Training School"
+                  />
                 </th>
               </tr>
             </thead>
@@ -303,12 +368,18 @@ export default async function ProjectsPage() {
                         className={`inline-flex max-w-full rounded-lg px-2.5 py-1 text-xs font-semibold ${situation.className}`}
                       >
                         <span className="whitespace-nowrap">
-                          {situation.label}
+                          <ProjectText
+                            ko={situation.ko.label}
+                            en={situation.en.label}
+                          />
                         </span>
                       </div>
 
                       <div className="mt-1 break-words text-xs leading-5 text-gray-500">
-                        {situation.description}
+                        <ProjectText
+                          ko={situation.ko.description}
+                          en={situation.en.description}
+                        />
                       </div>
                     </td>
 
@@ -318,15 +389,16 @@ export default async function ProjectsPage() {
                           {feedbackCount}
                         </span>
                       ) : (
-                        <span className="text-gray-400">
-                          -
-                        </span>
+                        <span className="text-gray-400">-</span>
                       )}
                     </td>
 
                     <td className="px-3 py-4 align-top">
                       <span className="break-words text-xs font-medium leading-5 text-gray-700">
-                        {situation.nextAction}
+                        <ProjectText
+                          ko={situation.ko.nextAction}
+                          en={situation.en.nextAction}
+                        />
                       </span>
                     </td>
 
@@ -355,11 +427,17 @@ export default async function ProjectsPage() {
                       ) : trainingSchoolUpload?.status ===
                         "UPLOAD_COMPLETED" ? (
                         <span className="inline-flex whitespace-nowrap rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
-                          업로드 완료
+                          <ProjectText
+                            ko="업로드 완료"
+                            en="Upload Complete"
+                          />
                         </span>
                       ) : (
                         <span className="inline-flex whitespace-nowrap rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-700">
-                          업로드 필요
+                          <ProjectText
+                            ko="업로드 필요"
+                            en="Upload Required"
+                          />
                         </span>
                       )}
                     </td>
@@ -373,7 +451,10 @@ export default async function ProjectsPage() {
                     colSpan={11}
                     className="px-6 py-12 text-center text-sm text-gray-500"
                   >
-                    표시할 프로젝트가 없습니다.
+                    <ProjectText
+                      ko="표시할 프로젝트가 없습니다."
+                      en="There are no projects to display."
+                    />
                   </td>
                 </tr>
               )}

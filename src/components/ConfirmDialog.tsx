@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "./Modal";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function ConfirmDialog({
   title,
@@ -20,20 +21,40 @@ export default function ConfirmDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { language } = useLanguage();
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const isEnglish = language === "English";
 
   async function confirm() {
     setError("");
     setLoading(true);
+
     try {
       const res = await fetch(endpoint, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Something went wrong. Please try again.");
+
+      if (!res.ok) {
+        throw new Error(
+          data.error ??
+            (isEnglish
+              ? "Something went wrong. Please try again."
+              : "문제가 발생했습니다. 다시 시도해주세요.")
+        );
+      }
+
       onClose();
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : isEnglish
+            ? "Something went wrong."
+            : "문제가 발생했습니다."
+      );
     } finally {
       setLoading(false);
     }
@@ -42,13 +63,31 @@ export default function ConfirmDialog({
   return (
     <Modal title={title} onClose={onClose}>
       <p className="text-sm text-muted">{description}</p>
-      {error && <p className="mt-3 text-sm text-status-revision">{error}</p>}
+
+      {error && (
+        <p className="mt-3 text-sm text-status-revision">
+          {error}
+        </p>
+      )}
+
       <div className="mt-6 flex justify-end gap-2">
-        <button className="btn-secondary" onClick={onClose}>
-          Cancel
+        <button
+          className="btn-secondary"
+          onClick={onClose}
+        >
+          {isEnglish ? "Cancel" : "취소"}
         </button>
-        <button className={confirmClassName} onClick={confirm} disabled={loading}>
-          {loading ? "Working…" : confirmLabel}
+
+        <button
+          className={confirmClassName}
+          onClick={confirm}
+          disabled={loading}
+        >
+          {loading
+            ? isEnglish
+              ? "Working…"
+              : "처리 중…"
+            : confirmLabel}
         </button>
       </div>
     </Modal>

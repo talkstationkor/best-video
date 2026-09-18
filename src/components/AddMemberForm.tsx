@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Team = "BEST_VIDEO_TEAM" | "EDITOR_TEAM" | "TMT";
 type Role = "SUBMITTER" | "EDITOR" | "REVIEWER" | "ADMIN";
 
 export default function AddMemberForm() {
   const router = useRouter();
+  const { language } = useLanguage();
+  const isEnglish = language === "English";
+
   const [name, setName] = useState("");
   const [team, setTeam] = useState<Team>("BEST_VIDEO_TEAM");
   const [role, setRole] = useState<Role>("SUBMITTER");
@@ -18,7 +22,11 @@ export default function AddMemberForm() {
     setError("");
 
     if (!name.trim()) {
-      setError("Name is required.");
+      setError(
+        isEnglish
+          ? "Name is required."
+          : "이름을 입력해주세요."
+      );
       return;
     }
 
@@ -35,7 +43,10 @@ export default function AddMemberForm() {
 
       if (!res.ok) {
         throw new Error(
-          data.error ?? "Something went wrong. Please try again."
+          data.error ??
+            (isEnglish
+              ? "Something went wrong. Please try again."
+              : "문제가 발생했습니다. 다시 시도해주세요.")
         );
       }
 
@@ -45,7 +56,9 @@ export default function AddMemberForm() {
       setError(
         e instanceof Error
           ? e.message
-          : "Something went wrong."
+          : isEnglish
+            ? "Something went wrong."
+            : "문제가 발생했습니다."
       );
     } finally {
       setLoading(false);
@@ -55,14 +68,15 @@ export default function AddMemberForm() {
   return (
     <div className="card px-6 py-5">
       <p className="mb-3 text-sm font-medium text-ink">
-        Add Member
+        {isEnglish ? "Add Member" : "멤버 추가"}
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label className="mb-1 block text-xs text-muted">
-            Name
+            {isEnglish ? "Name" : "이름"}
           </label>
+
           <input
             className="input"
             value={name}
@@ -72,8 +86,9 @@ export default function AddMemberForm() {
 
         <div>
           <label className="mb-1 block text-xs text-muted">
-            Team
+            {isEnglish ? "Team" : "팀"}
           </label>
+
           <select
             className="input"
             value={team}
@@ -84,9 +99,11 @@ export default function AddMemberForm() {
             <option value="BEST_VIDEO_TEAM">
               Best Video Team
             </option>
+
             <option value="EDITOR_TEAM">
               Editor Team
             </option>
+
             <option value="TMT">
               TMT
             </option>
@@ -95,8 +112,9 @@ export default function AddMemberForm() {
 
         <div>
           <label className="mb-1 block text-xs text-muted">
-            Role
+            {isEnglish ? "Role" : "역할"}
           </label>
+
           <select
             className="input"
             value={role}
@@ -105,16 +123,19 @@ export default function AddMemberForm() {
             }
           >
             <option value="SUBMITTER">
-              Submitter
+              {isEnglish ? "Submitter" : "제출자"}
             </option>
+
             <option value="EDITOR">
-              Editor
+              {isEnglish ? "Editor" : "에디터"}
             </option>
+
             <option value="REVIEWER">
-              Reviewer
+              {isEnglish ? "Reviewer" : "검토자"}
             </option>
+
             <option value="ADMIN">
-              Admin
+              {isEnglish ? "Admin" : "관리자"}
             </option>
           </select>
         </div>
@@ -124,7 +145,13 @@ export default function AddMemberForm() {
           onClick={submit}
           disabled={loading}
         >
-          {loading ? "Adding…" : "Add Member"}
+          {loading
+            ? isEnglish
+              ? "Adding…"
+              : "추가 중…"
+            : isEnglish
+              ? "Add Member"
+              : "멤버 추가"}
         </button>
       </div>
 

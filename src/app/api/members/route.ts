@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ members });
   } catch (err) {
     console.error("GET /api/members failed:", err);
-
     return NextResponse.json(
       { error: "Failed to load members." },
       { status: 500 }

@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function MarkAllReadButton() {
   const router = useRouter();
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   async function markAll() {
@@ -23,7 +25,13 @@ export default function MarkAllReadButton() {
 
   return (
     <button className="btn-secondary" onClick={markAll} disabled={loading}>
-      {loading ? "Marking…" : "Mark all as read"}
+      {loading
+        ? language === "English"
+          ? "Marking…"
+          : "처리 중…"
+        : language === "English"
+          ? "Mark all as read"
+          : "모두 읽음으로 표시"}
     </button>
   );
 }

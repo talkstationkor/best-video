@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "./Modal";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type FeedbackRow = {
   timestamp: string;
@@ -17,6 +18,9 @@ export default function AddFeedbackModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { language } = useLanguage();
+
+  const isEnglish = language === "English";
 
   const [rows, setRows] = useState<FeedbackRow[]>([
     { timestamp: "", message: "" }
@@ -54,7 +58,11 @@ export default function AddFeedbackModal({
     const validRows = rows.filter((row) => row.message.trim());
 
     if (validRows.length === 0) {
-      setError("Please enter at least one feedback message.");
+      setError(
+        isEnglish
+          ? "Please enter at least one feedback message."
+          : "피드백을 하나 이상 입력해주세요."
+      );
       return;
     }
 
@@ -80,7 +88,10 @@ export default function AddFeedbackModal({
 
         if (!res.ok) {
           throw new Error(
-            data.error ?? "Something went wrong. Please try again."
+            data.error ??
+              (isEnglish
+                ? "Something went wrong. Please try again."
+                : "문제가 발생했습니다. 다시 시도해주세요.")
           );
         }
       }
@@ -91,7 +102,9 @@ export default function AddFeedbackModal({
       setError(
         e instanceof Error
           ? e.message
-          : "Something went wrong. Please try again."
+          : isEnglish
+            ? "Something went wrong. Please try again."
+            : "문제가 발생했습니다. 다시 시도해주세요."
       );
     } finally {
       setLoading(false);
@@ -99,15 +112,18 @@ export default function AddFeedbackModal({
   }
 
   return (
-    <Modal title="Add Feedback" onClose={onClose}>
+    <Modal
+      title={isEnglish ? "Add Feedback" : "피드백 추가"}
+      onClose={onClose}
+    >
       <div className="space-y-4">
         <div className="grid grid-cols-[120px_1fr_36px] gap-2">
           <div className="text-sm font-medium text-ink">
-            Timestamp
+            {isEnglish ? "Timestamp" : "타임스탬프"}
           </div>
 
           <div className="text-sm font-medium text-ink">
-            Feedback
+            {isEnglish ? "Feedback" : "피드백"}
           </div>
 
           <div />
@@ -131,7 +147,11 @@ export default function AddFeedbackModal({
               <textarea
                 className="input"
                 rows={2}
-                placeholder="Enter feedback..."
+                placeholder={
+                  isEnglish
+                    ? "Enter feedback..."
+                    : "피드백을 입력하세요..."
+                }
                 value={row.message}
                 onChange={(e) =>
                   updateRow(index, "message", e.target.value)
@@ -143,7 +163,9 @@ export default function AddFeedbackModal({
                 onClick={() => removeRow(index)}
                 disabled={rows.length === 1 || loading}
                 className="btn-secondary h-10 px-2"
-                aria-label="Remove feedback"
+                aria-label={
+                  isEnglish ? "Remove feedback" : "피드백 삭제"
+                }
               >
                 ×
               </button>
@@ -157,7 +179,7 @@ export default function AddFeedbackModal({
           disabled={loading}
           className="text-sm font-medium text-brand hover:underline"
         >
-          + Add feedback
+          + {isEnglish ? "Add feedback" : "피드백 추가"}
         </button>
 
         {error && (
@@ -172,7 +194,7 @@ export default function AddFeedbackModal({
             onClick={onClose}
             disabled={loading}
           >
-            Cancel
+            {isEnglish ? "Cancel" : "취소"}
           </button>
 
           <button
@@ -180,7 +202,13 @@ export default function AddFeedbackModal({
             onClick={submit}
             disabled={loading}
           >
-            {loading ? "Saving…" : "Save"}
+            {loading
+              ? isEnglish
+                ? "Saving…"
+                : "저장 중…"
+              : isEnglish
+                ? "Save"
+                : "저장"}
           </button>
         </div>
       </div>

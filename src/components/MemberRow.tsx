@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Member = {
   id: string;
@@ -13,6 +14,7 @@ type Member = {
 
 export default function MemberRow({ member }: { member: Member }) {
   const router = useRouter();
+  const { language } = useLanguage();
   const [busy, setBusy] = useState(false);
 
   async function update(patch: Partial<Member>) {
@@ -32,6 +34,7 @@ export default function MemberRow({ member }: { member: Member }) {
   return (
     <tr className="border-b border-line last:border-0">
       <td className="px-5 py-3 font-medium text-ink">{member.name}</td>
+
       <td className="px-5 py-3">
         <select
           className="input w-auto"
@@ -43,6 +46,7 @@ export default function MemberRow({ member }: { member: Member }) {
           <option value="TMT">TMT</option>
         </select>
       </td>
+
       <td className="px-5 py-3">
         <select
           className="input w-auto"
@@ -50,18 +54,31 @@ export default function MemberRow({ member }: { member: Member }) {
           disabled={busy}
           onChange={(e) => update({ role: e.target.value as Member["role"] })}
         >
-          <option value="SUBMITTER">Submitter</option>
-          <option value="REVIEWER">Reviewer</option>
-          <option value="ADMIN">Admin</option>
+          <option value="SUBMITTER">
+            {language === "English" ? "Submitter" : "제출자"}
+          </option>
+          <option value="REVIEWER">
+            {language === "English" ? "Reviewer" : "검토자"}
+          </option>
+          <option value="ADMIN">
+            {language === "English" ? "Admin" : "관리자"}
+          </option>
         </select>
       </td>
+
       <td className="px-5 py-3">
         <button
           className={member.isActive ? "btn-secondary" : "btn-primary"}
           disabled={busy}
           onClick={() => update({ isActive: !member.isActive })}
         >
-          {member.isActive ? "Active" : "Inactive"}
+          {member.isActive
+            ? language === "English"
+              ? "Active"
+              : "활성"
+            : language === "English"
+              ? "Inactive"
+              : "비활성"}
         </button>
       </td>
     </tr>

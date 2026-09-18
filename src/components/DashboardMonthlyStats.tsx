@@ -3,6 +3,9 @@
 import { useState } from "react";
 import DashboardProjectModal from "./DashboardProjectModal";
 
+import { useLanguage } from "@/components/LanguageProvider";
+import { translations } from "@/lib/translations";
+
 type Project = {
   id: string;
   projectName: string;
@@ -39,6 +42,56 @@ export default function DashboardMonthlyStats({
 }: Props) {
   const [modal, setModal] = useState<ModalState>(null);
 
+  const { language } = useLanguage();
+
+  const t =
+    language === "English"
+      ? translations.English
+      : translations.Korean;
+
+  const monthNames =
+    language === "English"
+      ? [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December"
+        ]
+      : [
+          "1월",
+          "2월",
+          "3월",
+          "4월",
+          "5월",
+          "6월",
+          "7월",
+          "8월",
+          "9월",
+          "10월",
+          "11월",
+          "12월"
+        ];
+
+  function getMonthLabel(month: MonthlyStat) {
+    const [year, monthNumber] = month.key.split("-").map(Number);
+
+    if (!year || !monthNumber) {
+      return month.label;
+    }
+
+    return language === "English"
+      ? `${monthNames[monthNumber - 1]} ${year}`
+      : `${year}년 ${monthNames[monthNumber - 1]}`;
+  }
+
   function openModal(
     title: string,
     projects: Project[]
@@ -57,23 +110,23 @@ export default function DashboardMonthlyStats({
             <thead>
               <tr className="border-b border-line text-left text-muted">
                 <th className="px-5 py-3 font-medium">
-                  월
+                  {language === "English" ? "Month" : "월"}
                 </th>
 
                 <th className="px-5 py-3 text-center font-medium">
-                  전체
+                  {t.totalProjects}
                 </th>
 
                 <th className="px-5 py-3 text-center font-medium">
-                  검수 대기
+                  {t.reviewRequired}
                 </th>
 
                 <th className="px-5 py-3 text-center font-medium">
-                  수정 요청
+                  {t.revisionRequested}
                 </th>
 
                 <th className="px-5 py-3 text-center font-medium">
-                  승인 완료
+                  {t.approved}
                 </th>
               </tr>
             </thead>
@@ -98,6 +151,8 @@ export default function DashboardMonthlyStats({
                     project.status === "APPROVED"
                 );
 
+                const monthLabel = getMonthLabel(month);
+
                 return (
                   <tr
                     key={month.key}
@@ -105,7 +160,7 @@ export default function DashboardMonthlyStats({
                   >
                     <td className="px-5 py-4">
                       <span className="font-medium text-ink">
-                        {month.label}
+                        {monthLabel}
                       </span>
                     </td>
 
@@ -114,7 +169,7 @@ export default function DashboardMonthlyStats({
                         type="button"
                         onClick={() =>
                           openModal(
-                            `${month.label} · 전체 프로젝트`,
+                            `${monthLabel} · ${t.totalProjects}`,
                             projects
                           )
                         }
@@ -129,7 +184,7 @@ export default function DashboardMonthlyStats({
                         type="button"
                         onClick={() =>
                           openModal(
-                            `${month.label} · 검수 대기`,
+                            `${monthLabel} · ${t.reviewRequired}`,
                             reviewProjects
                           )
                         }
@@ -144,7 +199,7 @@ export default function DashboardMonthlyStats({
                         type="button"
                         onClick={() =>
                           openModal(
-                            `${month.label} · 수정 요청`,
+                            `${monthLabel} · ${t.revisionRequested}`,
                             revisionProjects
                           )
                         }
@@ -159,7 +214,7 @@ export default function DashboardMonthlyStats({
                         type="button"
                         onClick={() =>
                           openModal(
-                            `${month.label} · 승인 완료`,
+                            `${monthLabel} · ${t.approved}`,
                             approvedProjects
                           )
                         }

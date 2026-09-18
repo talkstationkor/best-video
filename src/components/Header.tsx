@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const TEAM_LABEL: Record<string, string> = {
   BEST_VIDEO_TEAM: "Best Video Team",
@@ -19,24 +20,24 @@ export default function Header({
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [language, setLanguage] = useState("한국어");
+  const { language, setLanguage } = useLanguage();
 
   const isAdmin = member.role === "ADMIN";
 
   const navItems =
-  language === "English"
-    ? [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/projects", label: "Projects" },
-        { href: "/notifications", label: "Notifications" },
-        { href: "/activity", label: "Activity" }
-      ]
-    : [
-        { href: "/dashboard", label: "대시보드" },
-        { href: "/projects", label: "프로젝트" },
-        { href: "/notifications", label: "알림" },
-        { href: "/activity", label: "활동" }
-      ];
+    language === "English"
+      ? [
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/projects", label: "Projects" },
+          { href: "/notifications", label: "Notifications" },
+          { href: "/activity", label: "Activity" }
+        ]
+      : [
+          { href: "/dashboard", label: "대시보드" },
+          { href: "/projects", label: "프로젝트" },
+          { href: "/notifications", label: "알림" },
+          { href: "/activity", label: "활동" }
+        ];
 
   async function changeUser() {
     await fetch("/api/session", { method: "DELETE" });
@@ -87,7 +88,9 @@ export default function Header({
         <div className="flex items-center gap-4">
           <select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) =>
+              setLanguage(e.target.value as "한국어" | "English")
+            }
             className="rounded-md border border-line bg-white px-2 py-1 text-sm text-ink"
             aria-label="Language"
           >
@@ -114,9 +117,11 @@ export default function Header({
               className="flex items-center gap-1.5 text-sm text-ink"
             >
               <span className="font-medium">{member.name}</span>
+
               <span className="text-muted">
                 · {TEAM_LABEL[member.team]}
               </span>
+
               <span className="text-muted">▾</span>
             </button>
 
@@ -126,7 +131,9 @@ export default function Header({
                   onClick={changeUser}
                   className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-paper"
                 >
-                  {language === "English" ? "Change User" : "사용자 변경"}
+                  {language === "English"
+                    ? "Change User"
+                    : "사용자 변경"}
                 </button>
               </div>
             )}
@@ -150,7 +157,10 @@ export default function Header({
         ))}
 
         {isAdmin && (
-          <Link href="/settings/members" className="text-muted">
+          <Link
+            href="/settings/members"
+            className="text-muted"
+          >
             {language === "English" ? "Settings" : "설정"}
           </Link>
         )}

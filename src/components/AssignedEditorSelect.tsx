@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Editor = {
   id: string;
@@ -19,9 +20,12 @@ export default function AssignedEditorSelect({
   projectId,
   currentEditorId,
   currentEditorName,
-  editors
+  editors,
 }: Props) {
   const router = useRouter();
+  const { language } = useLanguage();
+
+  const isEnglish = language === "English";
 
   const [selectedEditorId, setSelectedEditorId] = useState(
     currentEditorId ?? ""
@@ -37,26 +41,33 @@ export default function AssignedEditorSelect({
       const response = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          assignedEditorId: selectedEditorId || null
-        })
+          assignedEditorId: selectedEditorId || null,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Failed to assign Editor.");
+        throw new Error(
+          data.error ??
+            (isEnglish
+              ? "Failed to assign Editor."
+              : "편집자 배정에 실패했습니다.")
+        );
       }
 
-      setMessage("Saved");
+      setMessage(isEnglish ? "Saved" : "저장되었습니다.");
       router.refresh();
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Something went wrong. Please try again."
+          : isEnglish
+            ? "Something went wrong. Please try again."
+            : "문제가 발생했습니다. 다시 시도해주세요."
       );
     } finally {
       setLoading(false);
@@ -66,12 +77,18 @@ export default function AssignedEditorSelect({
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-sm font-medium text-ink">Assigned Editor</p>
+        <p className="text-sm font-medium text-ink">
+          {isEnglish ? "Assigned Editor" : "배정된 편집자"}
+        </p>
 
         <p className="mt-1 text-sm text-muted">
           {currentEditorName
-            ? `Currently assigned to ${currentEditorName}`
-            : "No Editor assigned"}
+            ? isEnglish
+              ? `Currently assigned to ${currentEditorName}`
+              : `${currentEditorName}님에게 현재 배정되어 있습니다`
+            : isEnglish
+              ? "No Editor assigned"
+              : "배정된 편집자가 없습니다"}
         </p>
       </div>
 
@@ -85,7 +102,9 @@ export default function AssignedEditorSelect({
           }}
           disabled={loading}
         >
-          <option value="">Unassigned</option>
+          <option value="">
+            {isEnglish ? "Unassigned" : "배정하지 않음"}
+          </option>
 
           {editors.map((editor) => (
             <option key={editor.id} value={editor.id}>
@@ -100,15 +119,17 @@ export default function AssignedEditorSelect({
           onClick={saveAssignment}
           disabled={loading}
         >
-          {loading ? "Saving…" : "Save"}
+          {loading
+            ? isEnglish
+              ? "Saving…"
+              : "저장 중…"
+            : isEnglish
+              ? "Save"
+              : "저장"}
         </button>
       </div>
 
-      {message && (
-        <p className="text-sm text-muted">
-          {message}
-        </p>
-      )}
+      {message && <p className="text-sm text-muted">{message}</p>}
     </div>
   );
 }
