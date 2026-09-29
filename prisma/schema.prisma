@@ -1,14 +1,18 @@
 // Best Video — Video Review & Approval System
-// Database schema. SQLite for easy local/dev use; swap the datasource
-// provider to postgresql for a shared production deployment without
-// changing any application code (all queries go through Prisma).
+// Database schema. Tables live in the tmt (tsai.kr) MariaDB so the Vercel
+// app and the tmt Laravel admin read and write the same data. Table names
+// are prefixed bv_ to stay clear of tmt's other tables, and the tables are
+// created by a Laravel migration in the tmt project (not prisma migrate).
 
+// The client is used with the MariaDB driver adapter (src/lib/db.ts): the
+// default MySQL driver negotiates a collation MariaDB 10.6 does not know, so
+// the server answers in binary and every string read fails.
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -32,12 +36,14 @@ model Member {
   activityLogs      ActivityLog[]     @relation("ActivityActor")
   notifications     Notification[]    @relation("NotificationRecipient")
   trainingUploads   TrainingSchoolUpload[] @relation("TrainingSchoolUploadedBy")
+
+  @@map("bv_members")
 }
 
 model Project {
   id             String   @id @default(cuid())
   projectName    String
-  details        String?
+  details        String? @db.Text
   team           String
   status         String   @default("DRAFT")
   workflowStatus String   @default("EDITOR_WORKING")
@@ -67,6 +73,8 @@ model Project {
   @@index([team])
   @@index([assignedEditorId])
   @@index([finalVersionId])
+
+  @@map("bv_projects")
 }
 
 model ProjectVersion {
@@ -75,8 +83,8 @@ model ProjectVersion {
   project       Project @relation(fields: [projectId], references: [id])
 
   versionNumber Int
-  videoUrl      String
-  notes         String?
+  videoUrl      String @db.Text
+  notes         String? @db.Text
 
   status      String   @default("REVIEW_REQUIRED")
   submittedAt DateTime @default(now())
@@ -97,6 +105,8 @@ model ProjectVersion {
 
   @@unique([projectId, versionNumber])
   @@index([projectId])
+
+  @@map("bv_project_versions")
 }
 
 model Feedback {
@@ -107,7 +117,7 @@ model Feedback {
   authorId String
   author   Member @relation("FeedbackAuthor", fields: [authorId], references: [id])
 
-  message   String
+  message   String @db.Text
   timestamp String?
   status    String @default("OPEN")
 
@@ -119,12 +129,14 @@ model Feedback {
   resolvedBy   Member? @relation("FeedbackResolvedBy", fields: [resolvedById], references: [id])
 
   @@index([versionId])
+
+  @@map("bv_feedback")
 }
 
 model Notification {
   id        String   @id @default(cuid())
   type      String
-  message   String
+  message   String @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -137,12 +149,14 @@ model Notification {
   versionId String?
 
   @@index([recipientId, isRead])
+
+  @@map("bv_notifications")
 }
 
 model ActivityLog {
   id        String   @id @default(cuid())
   action    String
-  detail    String?
+  detail    String? @db.Text
   team      String
   createdAt DateTime @default(now())
 
@@ -157,6 +171,8 @@ model ActivityLog {
 
   @@index([projectId])
   @@index([createdAt])
+
+  @@map("bv_activity_logs")
 }
 
 model TrainingSchoolUpload {
@@ -170,7 +186,7 @@ model TrainingSchoolUpload {
 
   status String @default("UPLOAD_REQUIRED")
 
-  trainingSchoolUrl String?
+  trainingSchoolUrl String? @db.Text
 
   uploadedById String?
   uploadedBy   Member? @relation("TrainingSchoolUploadedBy", fields: [uploadedById], references: [id])
@@ -184,4 +200,6 @@ model TrainingSchoolUpload {
   @@index([projectId])
   @@index([versionId])
   @@index([status])
+
+  @@map("bv_training_school_uploads")
 }

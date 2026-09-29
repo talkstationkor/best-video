@@ -2,20 +2,21 @@
   "name": "best-video",
   "version": "1.0.0",
   "private": true,
-"scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "postinstall": "prisma generate",
-  "prisma:migrate": "prisma migrate dev --name init",
-  "prisma:generate": "prisma generate",
-  "seed": "tsx prisma/seed.ts"
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "prisma generate",
+    "prisma:migrate": "echo \"Blocked: the database is the shared tmt MariaDB. Prisma migrate would drop tmt tables. Change the schema with a Laravel migration in the tmt project instead.\" && exit 1",
+    "prisma:generate": "prisma generate",
+    "seed": "tsx prisma/seed.ts"
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.18.0",
+    "@prisma/adapter-mariadb": "^6.19.2",
+    "@prisma/client": "^6.19.2",
     "next": "14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -26,7 +27,7 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
-    "prisma": "^5.18.0",
+    "prisma": "^6.19.2",
     "tailwindcss": "^3.4.6",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
