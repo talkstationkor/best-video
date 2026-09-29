@@ -114,8 +114,8 @@ export default function FeedbackItem({
               style={{
                 backgroundColor:
                   feedback.status === "OPEN"
-                    ? "#B14A34"
-                    : "#2F7D5B"
+                    ? "#DC2626"
+                    : "#16A34A"
               }}
             />
 
@@ -148,8 +148,8 @@ export default function FeedbackItem({
             style={{
               color:
                 feedback.status === "OPEN"
-                  ? "#93381F"
-                  : "#1F6644"
+                  ? "#991B1B"
+                  : "#166534"
             }}
           >
             {statusText}

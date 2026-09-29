@@ -7,38 +7,38 @@ const STYLES: Record<
   { bg: string; fg: string; ko: string; en: string }
 > = {
   DRAFT: {
-    bg: "#EEEEEA",
-    fg: "#5B5D64",
+    bg: "#F1F5F9",
+    fg: "#475569",
     ko: "작업 준비",
     en: "Draft"
   },
   REVIEW_REQUIRED: {
-    bg: "#F6EBD4",
-    fg: "#8A6414",
+    bg: "#FEF3C7",
+    fg: "#92400E",
     ko: "검수 대기",
     en: "Review Required"
   },
   REVISION_REQUESTED: {
-    bg: "#F5E1DA",
-    fg: "#93381F",
+    bg: "#FEE2E2",
+    fg: "#991B1B",
     ko: "수정 요청",
     en: "Revision Requested"
   },
   APPROVED: {
-    bg: "#DFEFE5",
-    fg: "#1F6644",
+    bg: "#DCFCE7",
+    fg: "#166534",
     ko: "승인 완료",
     en: "Approved"
   },
   OPEN: {
-    bg: "#F5E1DA",
-    fg: "#93381F",
+    bg: "#FEE2E2",
+    fg: "#991B1B",
     ko: "미해결",
     en: "Open"
   },
   RESOLVED: {
-    bg: "#DFEFE5",
-    fg: "#1F6644",
+    bg: "#DCFCE7",
+    fg: "#166534",
     ko: "해결됨",
     en: "Resolved"
   }

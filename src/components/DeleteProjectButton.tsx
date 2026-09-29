@@ -6,10 +6,13 @@ import { useLanguage } from "@/components/LanguageProvider";
 
 export default function DeleteProjectButton({
   projectId,
-  projectName
+  projectName,
+  compact = false
 }: {
   projectId: string;
   projectName: string;
+  // Small text-style button for table rows.
+  compact?: boolean;
 }) {
   const { language } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -20,10 +23,16 @@ export default function DeleteProjectButton({
     <>
       <button
         type="button"
-        className="btn-danger w-fit"
+        className={
+          compact
+            ? "whitespace-nowrap rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+            : "btn-danger w-fit"
+        }
         onClick={() => setOpen(true)}
       >
-        {isEnglish ? "Delete Project" : "프로젝트 삭제"}
+        {compact
+          ? isEnglish ? "Delete" : "삭제"
+          : isEnglish ? "Delete Project" : "프로젝트 삭제"}
       </button>
 
       {open && (
@@ -38,7 +47,8 @@ export default function DeleteProjectButton({
           confirmClassName="btn-danger"
           endpoint={`/api/projects/${projectId}`}
           method="DELETE"
-          redirectTo="/projects"
+          // From the detail page go back to the list; in the list just refresh.
+          redirectTo={compact ? undefined : "/projects"}
           onClose={() => setOpen(false)}
         />
       )}

@@ -156,7 +156,7 @@ export default function EntryForm({
           </p>
 
           <select
-            className="mt-3 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-muted"
+            className="mt-3 rounded-md border border-line bg-white px-2 py-1 text-xs text-muted"
             value={language}
             onChange={(e) =>
               setLanguage(e.target.value as "한국어" | "English")
@@ -180,8 +180,8 @@ export default function EntryForm({
                 aria-checked={active}
                 aria-label={t.label}
                 onClick={() => setTeam(t.id)}
-                className={`card block w-full px-5 py-3 text-left transition hover:border-blue-600 ${
-                  active ? "!border-blue-600 ring-1 ring-blue-600 bg-blue-50" : ""
+                className={`card block w-full px-5 py-3 text-left transition hover:border-brand ${
+                  active ? "!border-brand ring-1 ring-brand bg-brand-soft" : ""
                 }`}
               >
                 <div className="font-medium text-ink">{t.label}</div>
@@ -207,7 +207,7 @@ export default function EntryForm({
                       type="button"
                       onClick={() => setMode("pick")}
                       className={
-                        mode === "pick" ? "font-medium text-blue-600" : "text-slate-500"
+                        mode === "pick" ? "font-medium text-brand" : "text-muted"
                       }
                     >
                       {en ? "Choose from list" : "목록에서 선택"}
@@ -219,7 +219,7 @@ export default function EntryForm({
                       type="button"
                       onClick={() => setMode("new")}
                       className={
-                        mode === "new" ? "font-medium text-blue-600" : "text-slate-500"
+                        mode === "new" ? "font-medium text-brand" : "text-muted"
                       }
                     >
                       {en ? "I'm not on the list" : "목록에 없어요"}

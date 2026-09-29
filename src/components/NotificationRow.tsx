@@ -142,10 +142,10 @@ export default function NotificationRow({
         className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
         style={{
           backgroundColor: notification.isRead
-            ? "#C9CAD1"
+            ? "#CBD5E1"
             : notification.type === "VIDEO_APPROVED"
-              ? "#2F7D5B"
-              : "#B14A34"
+              ? "#16A34A"
+              : "#DC2626"
         }}
       />
 

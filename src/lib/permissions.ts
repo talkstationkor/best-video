@@ -76,9 +76,10 @@ export const permissions = {
   },
 
   // Deleting removes every version, feedback item and notification of the
-  // project, whether or not a video has been uploaded.
+  // project, whether or not a video has been uploaded. Only TMT and the
+  // top-level Admin may do it.
   canDeleteProject(member: Member) {
-    return canReview(member);
+    return member.team === "TMT" || member.role === "ADMIN";
   },
 
   canUploadTrainingSchool(member: Member) {

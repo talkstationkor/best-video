@@ -3,10 +3,11 @@ import AppShell from "@/components/AppShell";
 import StatusBadge from "@/components/StatusBadge";
 import NewProjectButton from "@/components/NewProjectButton";
 import ProjectText from "@/components/ProjectText";
+import DeleteProjectButton from "@/components/DeleteProjectButton";
 import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/session";
 import { permissions } from "@/lib/permissions";
-import { formatDateTime } from "@/lib/format";
+import { formatShortDate, formatTime } from "@/lib/format";
 
 const TEAM_LABEL: Record<string, string> = {
   "Best Video Team": "Best Video Team",
@@ -163,6 +164,7 @@ export default async function ProjectsPage() {
 
   const canViewAll = permissions.canViewAllProjects(member);
   const canCreateProject = permissions.canCreateProject(member);
+  const canDeleteProject = permissions.canDeleteProject(member);
 
   const projects = await prisma.project.findMany({
     where: canViewAll
@@ -250,15 +252,16 @@ export default async function ProjectsPage() {
           <NewProjectButton canCreate={canCreateProject} />
         </div>
 
-        <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full table-fixed text-sm">
+        <div className="w-full overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+          {/* min width keeps columns from squeezing into each other on narrow screens; the wrapper scrolls instead. */}
+          <table className="w-full min-w-[1280px] table-fixed text-sm">
             <thead className="border-b border-gray-200 bg-gray-50">
               <tr>
-                <th className="w-[13%] whitespace-nowrap px-4 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[14%] whitespace-nowrap px-4 py-3 text-center font-semibold text-gray-700">
                   <ProjectText ko="프로젝트" en="Project" />
                 </th>
 
-                <th className="w-[10%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[8%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
                   <ProjectText ko="팀" en="Team" />
                 </th>
 
@@ -266,7 +269,7 @@ export default async function ProjectsPage() {
                   <ProjectText ko="버전" en="Version" />
                 </th>
 
-                <th className="w-[13%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[12%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
                   <ProjectText ko="현재 상황" en="Current Status" />
                 </th>
 
@@ -274,7 +277,7 @@ export default async function ProjectsPage() {
                   <ProjectText ko="피드백" en="Feedback" />
                 </th>
 
-                <th className="w-[13%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[11%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
                   <ProjectText ko="다음 액션" en="Next Action" />
                 </th>
 
@@ -286,20 +289,26 @@ export default async function ProjectsPage() {
                   <ProjectText ko="상태" en="Status" />
                 </th>
 
-                <th className="w-[10%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[7%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
                   <ProjectText ko="제출자" en="Submitted By" />
                 </th>
 
-                <th className="w-[6%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[8%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
                   <ProjectText ko="업데이트" en="Updated" />
                 </th>
 
-                <th className="w-[9%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                <th className="w-[8%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
                   <ProjectText
                     ko="Training School"
                     en="Training School"
                   />
                 </th>
+
+                {canDeleteProject && (
+                  <th className="w-[6%] whitespace-nowrap px-3 py-3 text-center font-semibold text-gray-700">
+                    <ProjectText ko="관리" en="Manage" />
+                  </th>
+                )}
               </tr>
             </thead>
 
@@ -401,8 +410,13 @@ export default async function ProjectsPage() {
                         project.createdBy.name}
                     </td>
 
-                    <td className="whitespace-nowrap px-3 py-4 text-center align-top text-xs text-gray-500">
-                      {formatDateTime(project.updatedAt)}
+                    <td className="px-3 py-4 text-center align-top text-xs leading-5 text-gray-500">
+                      <div className="whitespace-nowrap">
+                        {formatShortDate(project.updatedAt)}
+                      </div>
+                      <div className="whitespace-nowrap">
+                        {formatTime(project.updatedAt)}
+                      </div>
                     </td>
 
                     <td className="px-3 py-4 text-center align-top">
@@ -427,6 +441,16 @@ export default async function ProjectsPage() {
                         </span>
                       )}
                     </td>
+
+                    {canDeleteProject && (
+                      <td className="px-3 py-4 text-center align-top">
+                        <DeleteProjectButton
+                          projectId={project.id}
+                          projectName={project.projectName}
+                          compact
+                        />
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -434,7 +458,7 @@ export default async function ProjectsPage() {
               {projects.length === 0 && (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={canDeleteProject ? 12 : 11}
                     className="px-6 py-12 text-center text-sm text-gray-500"
                   >
                     <ProjectText
