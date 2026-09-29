@@ -105,6 +105,24 @@ export default function NotificationRow({
       : `${actorName}님이 "${notification.projectName ?? "이 프로젝트"}"의 ${versionNumber}을 최종 승인했습니다`;
   }
 
+  if (notification.type === "REVISION_REQUESTED") {
+    const nameMatch = notification.message.match(/^(.+?)\s+requested/);
+    actorName = nameMatch?.[1] ?? "";
+
+    message = isEnglish
+      ? `${actorName} requested a revision on ${versionNumber} of "${notification.projectName ?? "this project"}"`
+      : `${actorName}님이 "${notification.projectName ?? "이 프로젝트"}"의 ${versionNumber}에 수정을 요청했습니다`;
+  }
+
+  if (notification.type === "EDITOR_ASSIGNED") {
+    const nameMatch = notification.message.match(/^(.+?)\s+assigned/);
+    actorName = nameMatch?.[1] ?? "";
+
+    message = isEnglish
+      ? `${actorName} assigned you to "${notification.projectName ?? "this project"}"`
+      : `${actorName}님이 "${notification.projectName ?? "이 프로젝트"}"에 회원님을 편집자로 배정했습니다`;
+  }
+
   return (
     <button
       type="button"

@@ -21,6 +21,12 @@ const MONTH_LABEL = [
   "12월"
 ];
 
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}`;
+}
+
 type MonthlyStat = {
   key: string;
   label: string;
@@ -51,39 +57,7 @@ export default async function DashboardPage() {
     ? {}
     : isEditor
       ? { assignedEditorId: member.id }
-      : { team: member.team };
-
-  const [
-    total,
-    reviewRequired,
-    revisionRequested,
-    approved
-  ] = await Promise.all([
-    prisma.project.count({
-      where: projectScope
-    }),
-
-    prisma.project.count({
-      where: {
-        ...projectScope,
-        status: "REVIEW_REQUIRED"
-      }
-    }),
-
-    prisma.project.count({
-      where: {
-        ...projectScope,
-        status: "REVISION_REQUESTED"
-      }
-    }),
-
-    prisma.project.count({
-      where: {
-        ...projectScope,
-        status: "APPROVED"
-      }
-    })
-  ]);
+      : { OR: [{ team: member.team }, { assignedEditorId: member.id }] };
 
   /*
    * 최근 12개월 월별 통계
@@ -93,6 +67,9 @@ export default async function DashboardPage() {
    *
    * 각 월에 생성된 프로젝트 중
    * 현재 상태가 무엇인지 집계합니다.
+   *
+   * 월·상태별로 따로 count하지 않고 12개월치 프로젝트를
+   * 한 번에 읽어 메모리에서 집계합니다. (DB 왕복 60여 회 → 1회)
    */
 
   const now = new Date();
@@ -100,90 +77,74 @@ export default async function DashboardPage() {
   const monthRanges = Array.from(
     { length: 12 },
     (_, index) => {
-      const offset = 11 - index;
-
       const start = new Date(
         now.getFullYear(),
-        now.getMonth() - offset,
-        1
-      );
-
-      const end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 1,
+        now.getMonth() - (11 - index),
         1
       );
 
       return {
-        key: `${start.getFullYear()}-${String(
-          start.getMonth() + 1
-        ).padStart(2, "0")}`,
-
+        key: monthKey(start),
         label: `${start.getFullYear()}년 ${
           MONTH_LABEL[start.getMonth()]
-        }`,
-
-        start,
-        end
+        }`
       };
     }
   );
 
-  const monthlyStatsResults = await Promise.all(
-    monthRanges.map(async (range) => {
-      const monthWhere = {
-        ...projectScope,
-        createdAt: {
-          gte: range.start,
-          lt: range.end
-        }
-      };
-
-      const [
-        monthTotal,
-        monthReviewRequired,
-        monthRevisionRequested,
-        monthApproved
-      ] = await Promise.all([
-        prisma.project.count({
-          where: monthWhere
-        }),
-
-        prisma.project.count({
-          where: {
-            ...monthWhere,
-            status: "REVIEW_REQUIRED"
-          }
-        }),
-
-        prisma.project.count({
-          where: {
-            ...monthWhere,
-            status: "REVISION_REQUESTED"
-          }
-        }),
-
-        prisma.project.count({
-          where: {
-            ...monthWhere,
-            status: "APPROVED"
-          }
-        })
-      ]);
-
-      return {
-        key: range.key,
-        label: range.label,
-        total: monthTotal,
-        reviewRequired: monthReviewRequired,
-        revisionRequested: monthRevisionRequested,
-        approved: monthApproved
-      };
-    })
+  const firstMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth() - 11,
+    1
   );
 
-  const monthlyStats: MonthlyStat[] =
-    monthlyStatsResults;
+  const [statusCounts, yearProjects] = await Promise.all([
+    prisma.project.groupBy({
+      by: ["status"],
+      where: projectScope,
+      _count: { _all: true }
+    }),
+
+    prisma.project.findMany({
+      where: {
+        ...projectScope,
+        createdAt: {
+          gte: firstMonthStart
+        }
+      },
+
+      orderBy: {
+        updatedAt: "desc"
+      },
+
+      select: {
+        id: true,
+        projectName: true,
+        currentVersion: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+
+        assignedEditor: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
+  ]);
+
+  const countByStatus = (status: string) =>
+    statusCounts.find((c) => c.status === status)?._count
+      ._all ?? 0;
+
+  const total = statusCounts.reduce(
+    (sum, c) => sum + c._count._all,
+    0
+  );
+  const reviewRequired = countByStatus("REVIEW_REQUIRED");
+  const revisionRequested = countByStatus("REVISION_REQUESTED");
+  const approved = countByStatus("APPROVED");
 
   /*
    * 월별 프로젝트 목록
@@ -191,65 +152,46 @@ export default async function DashboardPage() {
    * 숫자를 클릭했을 때 팝업에 표시하기 위한 데이터입니다.
    */
 
-  const monthlyProjectResults = await Promise.all(
-    monthRanges.map(async (range) => {
-      const projects = await prisma.project.findMany({
-        where: {
-          ...projectScope,
-          createdAt: {
-            gte: range.start,
-            lt: range.end
-          }
-        },
-
-        orderBy: {
-          updatedAt: "desc"
-        },
-
-        select: {
-          id: true,
-          projectName: true,
-          currentVersion: true,
-          status: true,
-          updatedAt: true,
-
-          assignedEditor: {
-            select: {
-              name: true
-            }
-          }
-        }
-      });
-
-      return {
-        key: range.key,
-        projects
-      };
-    })
-  );
-
   const monthlyProjects: Record<
     string,
     DashboardProject[]
-  > = {};
+  > = Object.fromEntries(
+    monthRanges.map((range) => [range.key, []])
+  );
 
-  for (const result of monthlyProjectResults) {
-    monthlyProjects[result.key] =
-      result.projects.map((project) => ({
-        id: project.id,
-        projectName: project.projectName,
-        currentVersion: project.currentVersion,
-        status: project.status,
-        updatedAt: project.updatedAt.toISOString(),
-        assignedEditor: project.assignedEditor
-      }));
+  for (const project of yearProjects) {
+    monthlyProjects[monthKey(project.createdAt)]?.push({
+      id: project.id,
+      projectName: project.projectName,
+      currentVersion: project.currentVersion,
+      status: project.status,
+      updatedAt: project.updatedAt.toISOString(),
+      assignedEditor: project.assignedEditor
+    });
   }
+
+  const monthlyStats: MonthlyStat[] = monthRanges.map(
+    (range) => {
+      const projects = monthlyProjects[range.key];
+      const countOf = (status: string) =>
+        projects.filter((p) => p.status === status).length;
+
+      return {
+        key: range.key,
+        label: range.label,
+        total: projects.length,
+        reviewRequired: countOf("REVIEW_REQUIRED"),
+        revisionRequested: countOf("REVISION_REQUESTED"),
+        approved: countOf("APPROVED")
+      };
+    }
+  );
 
   /*
    * 내가 처리해야 할 프로젝트
    */
 
-  const actionProjects = await prisma.project.findMany({
+  const actionProjectsQuery = prisma.project.findMany({
     where: {
       ...projectScope,
 
@@ -326,8 +268,8 @@ export default async function DashboardPage() {
    * 최근 프로젝트
    */
 
-  const recentProjects =
-    await prisma.project.findMany({
+  const recentProjectsQuery =
+    prisma.project.findMany({
       where: projectScope,
 
       orderBy: {
@@ -358,8 +300,8 @@ export default async function DashboardPage() {
    * 최근 활동
    */
 
-  const recentActivity =
-    await prisma.activityLog.findMany({
+  const recentActivityQuery =
+    prisma.activityLog.findMany({
       where: canSeeAll
         ? {}
         : isEditor
@@ -404,7 +346,13 @@ export default async function DashboardPage() {
       }
     });
 
-  const hour = new Date().getHours();
+  const [actionProjects, recentProjects, recentActivity] =
+    await Promise.all([
+      actionProjectsQuery,
+      recentProjectsQuery,
+      recentActivityQuery
+    ]);
+
 
   const stats = [
     {
@@ -436,7 +384,6 @@ export default async function DashboardPage() {
     <AppShell>
       <DashboardContent
         memberName={member.name}
-        hour={hour}
         canSeeAll={canSeeAll}
         isEditor={isEditor}
         stats={stats}

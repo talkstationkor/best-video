@@ -10,10 +10,10 @@ export function timeAgo(date: Date): string {
   return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function greetingFor(hour: number): string {
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+export function greetingFor(hour: number, english = true): string {
+  if (hour < 12) return english ? "Good morning" : "좋은 아침입니다";
+  if (hour < 18) return english ? "Good afternoon" : "안녕하세요";
+  return english ? "Good evening" : "좋은 저녁입니다";
 }
 
 export function formatDate(date: Date): string {
@@ -45,5 +45,8 @@ export const ACTION_LABEL: Record<string, string> = {
   FEEDBACK_EDITED: "edited feedback",
   REVISION_REQUESTED: "requested a revision",
   VIDEO_APPROVED: "approved a video",
+  FINAL_APPROVED: "gave final approval",
+  EDITOR_ASSIGNED: "assigned an editor",
+  PROJECT_DELETED: "deleted a project",
   MEMBER_UPDATED: "updated a member"
 };

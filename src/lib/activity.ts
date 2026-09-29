@@ -50,3 +50,48 @@ export async function notifyTeam(params: {
     }))
   });
 }
+
+const REVIEW_TEAMS = ["BEST_VIDEO_TEAM", "TMT"];
+
+// Notifies the people involved in one project:
+// - "reviewers": everyone on Best Video and TMT (both review at any time)
+// - "editor":    the assigned editor only
+// - "all":       both of the above
+export async function notifyProjectParticipants(params: {
+  project: { id: string; assignedEditorId: string | null };
+  type: string;
+  message: string;
+  versionId?: string;
+  excludeMemberId?: string;
+  audience?: "reviewers" | "editor" | "all";
+}) {
+  const audience = params.audience ?? "all";
+
+  const or: object[] = [];
+  if (audience !== "editor") or.push({ team: { in: REVIEW_TEAMS } });
+  if (audience !== "reviewers" && params.project.assignedEditorId) {
+    or.push({ id: params.project.assignedEditorId });
+  }
+  if (or.length === 0) return;
+
+  const recipients = await prisma.member.findMany({
+    where: {
+      isActive: true,
+      id: { not: params.excludeMemberId },
+      OR: or
+    },
+    select: { id: true }
+  });
+
+  if (recipients.length === 0) return;
+
+  await prisma.notification.createMany({
+    data: recipients.map((r) => ({
+      recipientId: r.id,
+      type: params.type,
+      message: params.message,
+      projectId: params.project.id,
+      versionId: params.versionId
+    }))
+  });
+}

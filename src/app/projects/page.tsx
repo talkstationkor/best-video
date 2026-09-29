@@ -100,41 +100,27 @@ function getProjectSituation(project: {
     };
   }
 
+  // BV and TMT review in any order, so every review stage (including the
+  // old two-step values still stored on older projects) reads the same.
   if (
+    project.workflowStatus === "IN_REVIEW" ||
     project.workflowStatus === "BEST_VIDEO_REVIEW" ||
-    project.workflowStatus === "Best Video review"
-  ) {
-    return {
-      ko: {
-        label: "Best Video 검토 중",
-        description: "Best Video Team 검토 단계",
-        nextAction: "검토 또는 수정 요청"
-      },
-      en: {
-        label: "Best Video Review",
-        description: "Best Video Team review stage",
-        nextAction: "Review or request revision"
-      },
-      className: "bg-yellow-50 text-yellow-700"
-    };
-  }
-
-  if (
     project.workflowStatus === "OUR_TEAM_REVIEW" ||
+    project.workflowStatus === "Best Video review" ||
     project.workflowStatus === "Our Team review"
   ) {
     return {
       ko: {
-        label: "TMT 검토 중",
-        description: "TMT 검토 단계",
+        label: "검토 중",
+        description: "Best Video·TMT 검토 단계",
         nextAction: "승인 또는 수정 요청"
       },
       en: {
-        label: "TMT Review",
-        description: "TMT review stage",
+        label: "In Review",
+        description: "Best Video / TMT review stage",
         nextAction: "Approve or request revision"
       },
-      className: "bg-orange-50 text-orange-700"
+      className: "bg-yellow-50 text-yellow-700"
     };
   }
 

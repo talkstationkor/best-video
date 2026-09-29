@@ -8,7 +8,7 @@ import {
   validateGoogleDriveUrl,
   ValidationError
 } from "@/lib/validation";
-import { logActivity, notifyTeam } from "@/lib/activity";
+import { logActivity, notifyProjectParticipants } from "@/lib/activity";
 
 export async function POST(
   req: NextRequest,
@@ -39,7 +39,7 @@ export async function POST(
       );
     }
 
-    if (!permissions.canViewAllProjects(member) && project.team !== member.team) {
+    if (!permissions.canAccessProject(member, project)) {
       return NextResponse.json(
         { error: "Project not found." },
         { status: 404 }
@@ -92,7 +92,7 @@ export async function POST(
             data: {
               currentVersion: nextVersionNumber,
               status: "REVIEW_REQUIRED",
-              workflowStatus: "BEST_VIDEO_REVIEW"
+              workflowStatus: "IN_REVIEW"
             }
           });
 
@@ -107,12 +107,12 @@ export async function POST(
           detail: `V${result.version.versionNumber} submitted`
         });
 
-        await notifyTeam({
-          team: "TMT",
+        await notifyProjectParticipants({
+          project,
           type: "VERSION_SUBMITTED",
           message: `${member.name} submitted V${result.version.versionNumber} for "${project.projectName}"`,
-          projectId: project.id,
-          versionId: result.version.id
+          versionId: result.version.id,
+          excludeMemberId: member.id
         });
 
         return NextResponse.json(

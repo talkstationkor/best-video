@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/session";
 import { permissions, ForbiddenError } from "@/lib/permissions";
-import { logActivity, notifyTeam } from "@/lib/activity";
+import { logActivity, notifyProjectParticipants } from "@/lib/activity";
 
 export async function POST(
   _req: NextRequest,
@@ -55,28 +55,19 @@ export async function POST(
       );
     }
 
-    const now = new Date();
-
-    const isBestVideoReview =
-      version.project.workflowStatus === "BEST_VIDEO_REVIEW";
-
-    const isOurTeamReview =
-      version.project.workflowStatus === "OUR_TEAM_REVIEW";
-
-    if (!isBestVideoReview && !isOurTeamReview) {
+    // Either Best Video or TMT may review at any time and in any order.
+    // One approval is final. A version that was sent back for revision
+    // cannot be approved — the editor has to submit a new one first.
+    if (version.status !== "REVIEW_REQUIRED") {
       return NextResponse.json(
         {
-          error: "This project is not currently waiting for an approval."
+          error: "This version is not currently waiting for review."
         },
         { status: 409 }
       );
     }
 
-    const nextWorkflowStatus = isBestVideoReview
-      ? "OUR_TEAM_REVIEW"
-      : "FINAL_APPROVED";
-
-    const isFinalApproval = nextWorkflowStatus === "FINAL_APPROVED";
+    const now = new Date();
 
     const [updatedVersion, updatedProject] = await prisma.$transaction([
       prisma.projectVersion.update({
@@ -91,35 +82,29 @@ export async function POST(
       prisma.project.update({
         where: { id: version.projectId },
         data: {
-          status: isFinalApproval ? "APPROVED" : "REVIEW_REQUIRED",
-          workflowStatus: nextWorkflowStatus,
-          approvedAt: isFinalApproval ? now : null,
-          approvedById: isFinalApproval ? member.id : null,
-          finalVersionId: isFinalApproval ? version.id : null
+          status: "APPROVED",
+          workflowStatus: "FINAL_APPROVED",
+          approvedAt: now,
+          approvedById: member.id,
+          finalVersionId: version.id
         }
       })
     ]);
 
     await logActivity({
       actor: member,
-      action: isFinalApproval
-        ? "FINAL_APPROVED"
-        : "BEST_VIDEO_APPROVED",
+      action: "FINAL_APPROVED",
       projectId: version.projectId,
       versionId: version.id,
       detail: `V${version.versionNumber}`
     });
 
-    await notifyTeam({
-      team: version.project.team,
-      type: isFinalApproval
-        ? "FINAL_APPROVED"
-        : "VIDEO_APPROVED",
-      message: isFinalApproval
-        ? `${member.name} gave final approval to V${version.versionNumber} of "${version.project.projectName}"`
-        : `${member.name} approved V${version.versionNumber}. The project is now waiting for team review.`,
-      projectId: version.projectId,
-      versionId: version.id
+    await notifyProjectParticipants({
+      project: version.project,
+      type: "FINAL_APPROVED",
+      message: `${member.name} gave final approval to V${version.versionNumber} of "${version.project.projectName}"`,
+      versionId: version.id,
+      excludeMemberId: member.id
     });
 
     return NextResponse.json({

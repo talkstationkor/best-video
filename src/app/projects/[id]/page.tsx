@@ -9,6 +9,7 @@ import FeedbackItem from "@/components/FeedbackItem";
 import AssignedEditorSelect from "@/components/AssignedEditorSelect";
 import TrainingSchoolUpload from "@/components/TrainingSchoolUpload";
 import ProjectText from "@/components/ProjectText";
+import DeleteProjectButton from "@/components/DeleteProjectButton";
 import { prisma } from "@/lib/db";
 import { permissions } from "@/lib/permissions";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -36,6 +37,22 @@ const STATUS_LABEL: Record<string, { ko: string; en: string }> = {
   APPROVED: {
     ko: "승인 완료",
     en: "Approved"
+  },
+  EDITOR_WORKING: {
+    ko: "편집 중",
+    en: "Editor Working"
+  },
+  IN_REVIEW: {
+    ko: "검토 중",
+    en: "In Review"
+  },
+  BEST_VIDEO_REVIEW: {
+    ko: "검토 중",
+    en: "In Review"
+  },
+  OUR_TEAM_REVIEW: {
+    ko: "검토 중",
+    en: "In Review"
   },
   FINAL_APPROVED: {
     ko: "최종 승인 완료",
@@ -139,8 +156,7 @@ export default async function ProjectDetailPage({
   }
 
   if (
-    !permissions.canViewAllProjects(member) &&
-    project.team !== member.team
+    !permissions.canAccessProject(member, project)
   ) {
     notFound();
   }
@@ -185,8 +201,12 @@ export default async function ProjectDetailPage({
   const isCurrentPending =
     current.status !== "APPROVED" && !isFinalApproved;
 
+  // A revision request is the most specific state, so it wins over the
+  // stage; otherwise show the stage (editor working / in review / final).
   const statusLabel =
-    STATUS_LABEL[project.workflowStatus] ??
+    (project.status === "REVISION_REQUESTED"
+      ? STATUS_LABEL.REVISION_REQUESTED
+      : STATUS_LABEL[project.workflowStatus]) ??
     STATUS_LABEL[project.status] ?? {
       ko: project.status,
       en: project.status
@@ -198,15 +218,13 @@ export default async function ProjectDetailPage({
 
   const canSubmit =
     permissions.canSubmitVersion(member) &&
-    (permissions.canViewAllProjects(member) ||
-      project.team === member.team) &&
+    permissions.canAccessProject(member, project) &&
     !isFinalApproved;
 
   const needsMyAction =
     !isFinalApproved &&
     project.status !== "APPROVED" &&
-    (permissions.canViewAllProjects(member) ||
-      project.team === member.team);
+    permissions.canAccessProject(member, project);
 
   const canAssignEditor =
     permissions.canAssignEditor(member);
@@ -240,12 +258,21 @@ export default async function ProjectDetailPage({
             </p>
           </div>
 
-          <Link
-            href="/projects"
-            className="btn-secondary w-fit"
-          >
-            <ProjectText ko="프로젝트 목록" en="Projects" />
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {permissions.canDeleteProject(member) && (
+              <DeleteProjectButton
+                projectId={project.id}
+                projectName={project.projectName}
+              />
+            )}
+
+            <Link
+              href="/projects"
+              className="btn-secondary w-fit"
+            >
+              <ProjectText ko="프로젝트 목록" en="Projects" />
+            </Link>
+          </div>
         </div>
 
         {project.details && (
@@ -516,7 +543,10 @@ export default async function ProjectDetailPage({
                 openFeedbackCount={openFeedbackCount}
                 canSubmitVersion={canSubmit}
                 canRequestRevision={permissions.canRequestRevision(member)}
-                canApprove={permissions.canApprove(member)}
+                canApprove={
+                  permissions.canApprove(member) &&
+                  current.status === "REVIEW_REQUIRED"
+                }
                 isApproved={false}
               />
             ) : (

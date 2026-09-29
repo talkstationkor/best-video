@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 
@@ -23,14 +24,16 @@ import { prisma } from "./db";
 
 const COOKIE_NAME = "bv_member_id";
 
-export async function getCurrentMember() {
+// cache(): a page and its AppShell both call this during one request;
+// only the first call hits the database.
+export const getCurrentMember = cache(async () => {
   const id = cookies().get(COOKIE_NAME)?.value;
   if (!id) return null;
 
   const member = await prisma.member.findUnique({ where: { id } });
   if (!member || !member.isActive) return null;
   return member;
-}
+});
 
 export function currentMemberCookieName() {
   return COOKIE_NAME;

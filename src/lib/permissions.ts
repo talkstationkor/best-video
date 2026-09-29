@@ -69,7 +69,19 @@ export const permissions = {
     return canReview(member);
   },
 
+  // Best Video and TMT both review, give feedback and request revisions,
+  // but only TMT gives the (final) approval.
   canApprove(member: Member) {
+    return member.team === "TMT" && isReviewerOrAdmin(member.role);
+  },
+
+  // Deleting removes every version, feedback item and notification of the
+  // project, whether or not a video has been uploaded.
+  canDeleteProject(member: Member) {
+    return canReview(member);
+  },
+
+  canUploadTrainingSchool(member: Member) {
     return canReview(member);
   },
 
@@ -79,6 +91,20 @@ export const permissions = {
 
   canViewAllProjects(member: Member) {
     return canReview(member);
+  },
+
+  // Reviewers see everything; everyone else sees their own team's
+  // projects plus any project they are the assigned editor on (editors
+  // belong to EDITOR_TEAM but work on other teams' projects).
+  canAccessProject(
+    member: Member,
+    project: { team: string; assignedEditorId: string | null }
+  ) {
+    return (
+      canReview(member) ||
+      project.team === member.team ||
+      project.assignedEditorId === member.id
+    );
   },
 
   canManageMembers(member: Member) {

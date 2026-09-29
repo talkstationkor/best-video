@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/session";
 import { permissions, ForbiddenError } from "@/lib/permissions";
-import { logActivity, notifyTeam } from "@/lib/activity";
+import { logActivity, notifyProjectParticipants } from "@/lib/activity";
 
 // POST /api/versions/:id/request-revision
 // This is the "critical action" the spec calls out by name: even if a
@@ -27,6 +27,15 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
         { status: 409 }
       );
     }
+    if (
+      version.project.workflowStatus === "FINAL_APPROVED" ||
+      version.project.finalVersionId
+    ) {
+      return NextResponse.json(
+        { error: "This project has already received final approval." },
+        { status: 409 }
+      );
+    }
     if (version.feedback.length === 0) {
       return NextResponse.json(
         { error: "Add at least one feedback item before requesting a revision." },
@@ -36,7 +45,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
     const [updatedVersion, updatedProject] = await prisma.$transaction([
       prisma.projectVersion.update({ where: { id: version.id }, data: { status: "REVISION_REQUESTED" } }),
-      prisma.project.update({ where: { id: version.projectId }, data: { status: "REVISION_REQUESTED" } })
+      prisma.project.update({ where: { id: version.projectId }, data: { status: "REVISION_REQUESTED", workflowStatus: "EDITOR_WORKING" } })
     ]);
 
     await logActivity({
@@ -47,12 +56,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       detail: `V${version.versionNumber}`
     });
 
-    await notifyTeam({
-      team: version.project.team,
+    await notifyProjectParticipants({
+      project: version.project,
       type: "REVISION_REQUESTED",
       message: `${member.name} requested a revision on V${version.versionNumber} of "${version.project.projectName}"`,
-      projectId: version.projectId,
-      versionId: version.id
+      versionId: version.id,
+      excludeMemberId: member.id
     });
 
     return NextResponse.json({ version: updatedVersion, project: updatedProject });

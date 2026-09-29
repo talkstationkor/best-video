@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 type Language = "한국어" | "English";
+
+const STORAGE_KEY = "bv_language";
 
 const LanguageContext = createContext<{
   language: Language;
@@ -17,7 +19,22 @@ export function LanguageProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [language, setLanguage] = useState<Language>("한국어");
+  const [language, setLanguageState] = useState<Language>("한국어");
+
+  // Remember the choice per browser so it survives full page loads.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === "English" || saved === "한국어") setLanguageState(saved);
+    } catch {}
+  }, []);
+
+  function setLanguage(next: Language) {
+    setLanguageState(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {}
+  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage }}>

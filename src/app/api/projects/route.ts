@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (!permissions.canViewAllProjects(member)) {
-    where.team = member.team;
+    where.OR = [{ team: member.team }, { assignedEditorId: member.id }];
   } else if (team) {
     where.team = team;
   }

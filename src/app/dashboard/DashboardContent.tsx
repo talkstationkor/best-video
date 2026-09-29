@@ -32,7 +32,6 @@ type DashboardProject = {
 
 type DashboardContentProps = {
   memberName: string;
-  hour: number;
   canSeeAll: boolean;
   isEditor: boolean;
 
@@ -58,7 +57,6 @@ type DashboardContentProps = {
 
 export default function DashboardContent({
   memberName,
-  hour,
   canSeeAll,
   isEditor,
   stats,
@@ -101,8 +99,11 @@ const getStatusLabel = (status: string) => {
     <div>
       {/* 인사말 */}
       <div>
-        <p className="text-2xl font-semibold text-ink">
-          {greetingFor(hour)}, {memberName}.
+        {/* Hour comes from the viewer's browser, not the server (Vercel runs in UTC). */}
+        <p className="text-2xl font-semibold text-ink" suppressHydrationWarning>
+          {greetingFor(new Date().getHours(), language === "English")},{" "}
+          {memberName}
+          {language === "English" ? "." : "님."}
         </p>
 
         <p className="mt-1 text-sm text-muted">
@@ -137,28 +138,6 @@ const getStatusLabel = (status: string) => {
           );
         })}
       </div>
-
-      {/* 월별 현황 */}
-      <section className="mt-10">
-        <div className="mb-3">
-          <p className="label-eyebrow">
-            {t.monthlyOverview}
-          </p>
-
-          <h2 className="mt-1 text-xl font-semibold text-ink">
-            {t.monthlyTitle}
-          </h2>
-
-          <p className="mt-1 text-sm text-muted">
-            {t.monthlyDescription}
-          </p>
-        </div>
-
-        <DashboardMonthlyStats
-          monthlyStats={monthlyStats}
-          monthlyProjects={monthlyProjects}
-        />
-      </section>
 
       {/* 내가 처리해야 할 작업 */}
       <section className="mt-10">
@@ -240,6 +219,28 @@ const getStatusLabel = (status: string) => {
             })}
           </div>
         )}
+      </section>
+
+      {/* 월별 현황 */}
+      <section className="mt-10">
+        <div className="mb-3">
+          <p className="label-eyebrow">
+            {t.monthlyOverview}
+          </p>
+
+          <h2 className="mt-1 text-xl font-semibold text-ink">
+            {t.monthlyTitle}
+          </h2>
+
+          <p className="mt-1 text-sm text-muted">
+            {t.monthlyDescription}
+          </p>
+        </div>
+
+        <DashboardMonthlyStats
+          monthlyStats={monthlyStats}
+          monthlyProjects={monthlyProjects}
+        />
       </section>
 
       {/* Project Overview */}

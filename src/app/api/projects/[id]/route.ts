@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/session";
 import { permissions, ForbiddenError } from "@/lib/permissions";
 import { ValidationError } from "@/lib/validation";
-import { logActivity } from "@/lib/activity";
+import { logActivity, notifyProjectParticipants } from "@/lib/activity";
 
 export async function GET(
   _req: NextRequest,
@@ -82,8 +82,7 @@ export async function GET(
   }
 
   if (
-    !permissions.canViewAllProjects(member) &&
-    project.team !== member.team
+    !permissions.canAccessProject(member, project)
   ) {
     return NextResponse.json(
       { error: "Project not found." },
@@ -120,7 +119,7 @@ export async function PATCH(
       );
     }
 
-    if (!permissions.canApprove(member)) {
+    if (!permissions.canAssignEditor(member)) {
       throw new ForbiddenError(
         "You don't have permission to assign an Editor."
       );
@@ -237,6 +236,16 @@ export async function PATCH(
       detail: `${previousEditorName} → ${newEditorName}`
     });
 
+    if (assignedEditor && assignedEditor.id !== project.assignedEditorId) {
+      await notifyProjectParticipants({
+        project: updated,
+        type: "EDITOR_ASSIGNED",
+        message: `${member.name} assigned you to "${project.projectName}"`,
+        audience: "editor",
+        excludeMemberId: member.id
+      });
+    }
+
     return NextResponse.json({
       project: updated
     });
@@ -264,6 +273,86 @@ export async function PATCH(
       {
         status: 500
       }
+    );
+  }
+}
+// DELETE /api/projects/:id — removes the project together with all of its
+// versions (uploaded videos included), feedback, notifications and
+// Training School records. Activity history is kept but detached from the
+// project, and the deletion itself is logged.
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const member = await getCurrentMember();
+
+    if (!member) {
+      return NextResponse.json(
+        { error: "Please choose who you are." },
+        { status: 401 }
+      );
+    }
+
+    if (!permissions.canDeleteProject(member)) {
+      throw new ForbiddenError(
+        "You don't have permission to delete this project."
+      );
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id: params.id },
+      select: { id: true, projectName: true }
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found." },
+        { status: 404 }
+      );
+    }
+
+    const versionFilter = { version: { projectId: project.id } };
+
+    await prisma.$transaction([
+      // Project.finalVersionId points at a version, so unlink it first.
+      prisma.project.update({
+        where: { id: project.id },
+        data: { finalVersionId: null }
+      }),
+      prisma.activityLog.updateMany({
+        where: { OR: [{ projectId: project.id }, versionFilter] },
+        data: { projectId: null, versionId: null }
+      }),
+      prisma.notification.deleteMany({ where: { projectId: project.id } }),
+      prisma.trainingSchoolUpload.deleteMany({
+        where: { projectId: project.id }
+      }),
+      prisma.feedback.deleteMany({ where: versionFilter }),
+      prisma.projectVersion.deleteMany({ where: { projectId: project.id } }),
+      prisma.project.delete({ where: { id: project.id } })
+    ]);
+
+    await logActivity({
+      actor: member,
+      action: "PROJECT_DELETED",
+      detail: project.projectName
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      return NextResponse.json(
+        { error: err.message },
+        { status: 403 }
+      );
+    }
+
+    console.error(err);
+
+    return NextResponse.json(
+      { error: "Something went wrong. Please try again." },
+      { status: 500 }
     );
   }
 }

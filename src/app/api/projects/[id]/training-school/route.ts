@@ -18,7 +18,7 @@ export async function POST(
       );
     }
 
-    if (!permissions.canApprove(member)) {
+    if (!permissions.canUploadTrainingSchool(member)) {
       throw new ForbiddenError();
     }
 
@@ -46,8 +46,7 @@ export async function POST(
     }
 
     if (
-      !permissions.canViewAllProjects(member) &&
-      project.team !== member.team
+      !permissions.canAccessProject(member, project)
     ) {
       return NextResponse.json(
         { error: "Project not found." },

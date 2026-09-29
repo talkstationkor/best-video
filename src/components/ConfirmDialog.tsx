@@ -11,6 +11,8 @@ export default function ConfirmDialog({
   confirmLabel,
   confirmClassName = "btn-primary",
   endpoint,
+  method = "POST",
+  redirectTo,
   onClose
 }: {
   title: string;
@@ -18,6 +20,10 @@ export default function ConfirmDialog({
   confirmLabel: string;
   confirmClassName?: string;
   endpoint: string;
+  method?: "POST" | "DELETE";
+  // Where to go on success (e.g. the list after deleting); otherwise the
+  // current page is refreshed.
+  redirectTo?: string;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -33,7 +39,7 @@ export default function ConfirmDialog({
     setLoading(true);
 
     try {
-      const res = await fetch(endpoint, { method: "POST" });
+      const res = await fetch(endpoint, { method });
       const data = await res.json();
 
       if (!res.ok) {
@@ -43,6 +49,12 @@ export default function ConfirmDialog({
               ? "Something went wrong. Please try again."
               : "문제가 발생했습니다. 다시 시도해주세요.")
         );
+      }
+
+      if (redirectTo) {
+        router.push(redirectTo);
+        router.refresh();
+        return;
       }
 
       onClose();
