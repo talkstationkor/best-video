@@ -63,5 +63,6 @@ export const ACTION_LABEL: Record<string, string> = {
   FINAL_APPROVED: "gave final approval",
   EDITOR_ASSIGNED: "assigned an editor",
   PROJECT_DELETED: "deleted a project",
-  MEMBER_UPDATED: "updated a member"
+  MEMBER_UPDATED: "updated a member",
+  TMT_PIN_CHANGED: "changed the TMT PIN"
 };

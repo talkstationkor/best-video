@@ -55,6 +55,8 @@ export default function EntryForm({
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState("");
   const [customName, setCustomName] = useState("");
+  // TMT only: the shared 4-digit team PIN (checked by the tmt API).
+  const [pin, setPin] = useState("");
   const [mode, setMode] = useState<"pick" | "new">("pick");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -65,6 +67,7 @@ export default function EntryForm({
     let cancelled = false;
     setMembersLoaded(false);
     setSelectedId("");
+    setPin("");
     setError("");
 
     fetch(`/api/members?team=${team}`)
@@ -102,6 +105,11 @@ export default function EntryForm({
       return;
     }
 
+    if (team === "TMT" && !/^d{4}$/.test(pin)) {
+      setError(en ? "Enter the 4-digit TMT PIN." : "TMT 비밀번호 4자리를 입력해 주세요.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -110,13 +118,16 @@ export default function EntryForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           mode === "pick"
-            ? { memberId: selectedId }
-            : { team, name: customName }
+            ? { memberId: selectedId, pin }
+            : { team, name: customName, pin }
         )
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (data.error === "The TMT PIN is incorrect." && !en) {
+          throw new Error("TMT 비밀번호가 맞지 않아요.");
+        }
         throw new Error(
           data.error ??
             (en
@@ -252,6 +263,25 @@ export default function EntryForm({
                     onKeyDown={(e) => e.key === "Enter" && submit()}
                     autoFocus
                   />
+                )}
+
+                {team === "TMT" && (
+                  <div className="mt-3">
+                    <label htmlFor="tmt-pin" className="mb-1 block text-xs text-muted">
+                      {en ? "TMT PIN (4 digits)" : "TMT 비밀번호 (숫자 4자리)"}
+                    </label>
+                    <input
+                      id="tmt-pin"
+                      className="input tracking-widest"
+                      type="password"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={4}
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      onKeyDown={(e) => e.key === "Enter" && submit()}
+                    />
+                  </div>
                 )}
 
                 {error && (

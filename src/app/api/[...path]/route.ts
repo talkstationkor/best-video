@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BvApiError, bvFetch } from "@/lib/bvApi";
-import { currentMemberId } from "@/lib/session";
+import { getCurrentMember } from "@/lib/session";
 
 // Forwards the browser's /api/* calls to the tmt Best Video API (/api/bv/*),
-// adding the server-side key and the member from this app's cookie. The
+// signed server-side and acting as the member from this app's cookie. The
 // paths match one to one (e.g. /api/versions/:id/approve). /api/session is
 // handled by its own route because it sets the cookie.
 
@@ -29,7 +29,9 @@ async function forward(req: NextRequest, params: { path: string[] }) {
   try {
     const res = await bvFetch(path, {
       method: req.method,
-      memberId: currentMemberId(),
+      // Resolved like the pages do, so a TMT member whose PIN session has
+      // ended acts as nobody here too.
+      memberId: (await getCurrentMember())?.id ?? null,
       rawBody: hasBody ? await req.text() : undefined,
       query: req.nextUrl.search
     });
