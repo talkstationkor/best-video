@@ -1,7 +1,8 @@
 import AppShell, { requireMember } from "@/components/AppShell";
 import MemberRow from "@/components/MemberRow";
 import AddMemberForm from "@/components/AddMemberForm";
-import { prisma } from "@/lib/db";
+import { bvGet } from "@/lib/bvApi";
+import type { Member } from "@/lib/types";
 import { permissions } from "@/lib/permissions";
 
 export default async function MembersSettingsPage() {
@@ -18,7 +19,7 @@ export default async function MembersSettingsPage() {
     );
   }
 
-  const members = await prisma.member.findMany({ orderBy: [{ team: "asc" }, { name: "asc" }] });
+  const { members } = await bvGet<{ members: Member[] }>("/members?full=1", member.id);
 
   return (
     <AppShell>

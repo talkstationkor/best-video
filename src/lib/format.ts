@@ -1,4 +1,4 @@
-export function timeAgo(date: Date): string {
+export function timeAgo(date: Date | string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
@@ -16,11 +16,11 @@ export function greetingFor(hour: number, english = true): string {
   return english ? "Good evening" : "좋은 저녁입니다";
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-export function formatShortDate(date: Date): string {
+export function formatShortDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -28,14 +28,14 @@ export function formatShortDate(date: Date): string {
   });
 }
 
-export function formatTime(date: Date): string {
+export function formatTime(date: Date | string): string {
   return new Date(date).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit"
   });
 }
 
-export function formatDateTime(date: Date): string {
+export function formatDateTime(date: Date | string): string {
   return new Date(date).toLocaleString("en-US", {
     month: "short",
     day: "numeric",

@@ -6,17 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "prisma generate",
-    "prisma:migrate": "echo \"Blocked: the database is the shared tmt MariaDB. Prisma migrate would drop tmt tables. Change the schema with a Laravel migration in the tmt project instead.\" && exit 1",
-    "prisma:generate": "prisma generate",
-    "seed": "tsx prisma/seed.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "schema:sql": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script"
   },
   "dependencies": {
-    "@prisma/adapter-mariadb": "^6.19.2",
-    "@prisma/client": "^6.19.2",
     "next": "14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

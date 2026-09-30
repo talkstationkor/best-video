@@ -4,7 +4,7 @@ import StatusBadge from "@/components/StatusBadge";
 import NewProjectButton from "@/components/NewProjectButton";
 import ProjectText from "@/components/ProjectText";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
-import { prisma } from "@/lib/db";
+import { bvGet } from "@/lib/bvApi";
 import { getCurrentMember } from "@/lib/session";
 import { permissions } from "@/lib/permissions";
 import { formatShortDate, formatTime } from "@/lib/format";
@@ -14,6 +14,25 @@ const TEAM_LABEL: Record<string, string> = {
   BEST_VIDEO_TEAM: "Best Video Team",
   EDITOR_TEAM: "Editor Team",
   TMT: "TMT"
+};
+
+type ProjectListItem = {
+  id: string;
+  projectName: string;
+  details: string | null;
+  team: string;
+  status: string;
+  workflowStatus: string;
+  updatedAt: string;
+  createdBy: { id: string; name: string };
+  assignedEditor: { id: string; name: string } | null;
+  trainingSchoolUploads: { status: string; updatedAt: string }[];
+  versions: {
+    id: string;
+    versionNumber: number;
+    submittedBy: { name: string };
+    feedback: { id: string }[];
+  }[];
 };
 
 function getProjectSituation(project: {
@@ -166,71 +185,12 @@ export default async function ProjectsPage() {
   const canCreateProject = permissions.canCreateProject(member);
   const canDeleteProject = permissions.canDeleteProject(member);
 
-  const projects = await prisma.project.findMany({
-    where: canViewAll
-      ? undefined
-      : {
-          OR: [
-            { team: member.team },
-            { assignedEditorId: member.id },
-            { createdById: member.id }
-          ]
-        },
-
-    include: {
-      createdBy: {
-        select: {
-          id: true,
-          name: true
-        }
-      },
-
-      assignedEditor: {
-        select: {
-          id: true,
-          name: true
-        }
-      },
-
-      trainingSchoolUploads: {
-        select: {
-          status: true,
-          updatedAt: true
-        },
-        orderBy: {
-          updatedAt: "desc"
-        }
-      },
-
-      versions: {
-        orderBy: {
-          versionNumber: "desc"
-        },
-        take: 1,
-
-        select: {
-          id: true,
-          versionNumber: true,
-
-          submittedBy: {
-            select: {
-              name: true
-            }
-          },
-
-          feedback: {
-            select: {
-              id: true
-            }
-          }
-        }
-      }
-    },
-
-    orderBy: {
-      updatedAt: "desc"
-    }
-  });
+  // Visibility (reviewers see all; others their team, projects they created
+  // and projects they are the assigned editor on) is applied by the API.
+  const { projects } = await bvGet<{ projects: ProjectListItem[] }>(
+    "/projects",
+    member.id
+  );
 
   return (
     <AppShell wide>

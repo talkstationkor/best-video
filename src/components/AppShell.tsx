@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentMember } from "@/lib/session";
-import { prisma } from "@/lib/db";
+import { getCurrentMember, getUnreadCount } from "@/lib/session";
 import Header from "./Header";
 
 export async function requireMember() {
@@ -24,12 +23,7 @@ export default async function AppShell({
 }: AppShellProps) {
   const member = await requireMember();
 
-  const unreadCount = await prisma.notification.count({
-    where: {
-      recipientId: member.id,
-      isRead: false
-    }
-  });
+  const unreadCount = await getUnreadCount();
 
   return (
     <div className="min-h-screen">

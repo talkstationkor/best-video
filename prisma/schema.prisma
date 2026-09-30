@@ -1,12 +1,16 @@
 // Best Video — Video Review & Approval System
-// Database schema. Tables live in the tmt (tsai.kr) MariaDB so the Vercel
-// app and the tmt Laravel admin read and write the same data. Table names
-// are prefixed bv_ to stay clear of tmt's other tables, and the tables are
-// created by a Laravel migration in the tmt project (not prisma migrate).
-
-// The client is used with the MariaDB driver adapter (src/lib/db.ts): the
-// default MySQL driver negotiates a collation MariaDB 10.6 does not know, so
-// the server answers in binary and every string read fails.
+// Reference schema for the shared bv_* tables in the tmt (tsai.kr) MariaDB.
+//
+// This app does NOT use Prisma at runtime: it reads and writes through the
+// tmt Best Video API (/api/bv, Laravel), which owns the tables and the
+// business rules. This file documents the table structure and produces the
+// DDL for tmt migrations:
+//
+//   npm run schema:sql    (prints CREATE TABLE statements; no database access)
+//
+// To change a table, edit this file and add a matching Laravel migration in
+// the tmt project. Never run prisma migrate or db push against the tmt
+// database: Prisma would try to drop tmt's other tables.
 generator client {
   provider = "prisma-client-js"
 }

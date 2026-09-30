@@ -10,7 +10,7 @@ import AssignedEditorSelect from "@/components/AssignedEditorSelect";
 import TrainingSchoolUpload from "@/components/TrainingSchoolUpload";
 import ProjectText from "@/components/ProjectText";
 import DeleteProjectButton from "@/components/DeleteProjectButton";
-import { prisma } from "@/lib/db";
+import { BvApiError, bvGet } from "@/lib/bvApi";
 import { permissions } from "@/lib/permissions";
 import { formatDate, formatDateTime } from "@/lib/format";
 
@@ -60,6 +60,62 @@ const STATUS_LABEL: Record<string, { ko: string; en: string }> = {
   }
 };
 
+type Person = { id: string; name: string };
+
+type FeedbackRow = {
+  id: string;
+  versionId: string;
+  authorId: string;
+  message: string;
+  timestamp: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  author: Person;
+  resolvedBy: Person | null;
+};
+
+type VersionRow = {
+  id: string;
+  versionNumber: number;
+  videoUrl: string;
+  notes: string | null;
+  status: string;
+  submittedAt: string;
+  approvedAt: string | null;
+  submittedBy: Person;
+  approvedBy: Person | null;
+  feedback: FeedbackRow[];
+};
+
+type ProjectDetail = {
+  id: string;
+  projectName: string;
+  details: string | null;
+  team: string;
+  status: string;
+  workflowStatus: string;
+  currentVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  assignedEditorId: string | null;
+  finalVersionId: string | null;
+  approvedAt: string | null;
+  createdBy: Person;
+  assignedEditor: (Person & { team: string; role: string; isActive: boolean }) | null;
+  finalVersion: { id: string; versionNumber: number; videoUrl: string } | null;
+  trainingSchoolUploads: {
+    id: string;
+    status: string;
+    trainingSchoolUrl: string | null;
+    completedAt: string | null;
+    uploadedBy: Person | null;
+    version: { id: string; versionNumber: number };
+  }[];
+  versions: VersionRow[];
+};
+
 export default async function ProjectDetailPage({
   params
 }: {
@@ -67,114 +123,17 @@ export default async function ProjectDetailPage({
 }) {
   const member = await requireMember();
 
-  const project = await prisma.project.findUnique({
-    where: { id: params.id },
-    include: {
-      createdBy: {
-        select: {
-          name: true
-        }
-      },
-
-      assignedEditor: {
-        select: {
-          id: true,
-          name: true,
-          team: true,
-          role: true,
-          isActive: true
-        }
-      },
-
-      finalVersion: {
-        select: {
-          id: true,
-          versionNumber: true,
-          videoUrl: true
-        }
-      },
-
-      trainingSchoolUploads: {
-        orderBy: {
-          createdAt: "desc"
-        },
-        include: {
-          uploadedBy: {
-            select: {
-              name: true
-            }
-          },
-          version: {
-            select: {
-              versionNumber: true
-            }
-          }
-        }
-      },
-
-      versions: {
-        orderBy: {
-          versionNumber: "desc"
-        },
-        include: {
-          submittedBy: {
-            select: {
-              name: true
-            }
-          },
-
-          approvedBy: {
-            select: {
-              name: true
-            }
-          },
-
-          feedback: {
-            orderBy: {
-              createdAt: "asc"
-            },
-            include: {
-              author: {
-                select: {
-                  name: true
-                }
-              },
-              resolvedBy: {
-                select: {
-                  name: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-
-  if (!project) {
-    notFound();
+  // The API returns 404 both for a missing project and for one this member
+  // may not see.
+  let data: { project: ProjectDetail; editors: { id: string; name: string }[] };
+  try {
+    data = await bvGet("/projects/" + encodeURIComponent(params.id), member.id);
+  } catch (err) {
+    if (err instanceof BvApiError && err.status === 404) notFound();
+    throw err;
   }
 
-  if (
-    !permissions.canAccessProject(member, project)
-  ) {
-    notFound();
-  }
-
-  const editors = await prisma.member.findMany({
-    where: {
-      team: "EDITOR_TEAM",
-      role: "EDITOR",
-      isActive: true
-    },
-    select: {
-      id: true,
-      name: true
-    },
-    orderBy: {
-      name: "asc"
-    }
-  });
+  const { project, editors } = data;
 
   const current = project.versions[0];
 
@@ -633,7 +592,7 @@ export default async function ProjectDetailPage({
                   message: f.message,
                   timestamp: f.timestamp,
                   status: f.status,
-                  createdAt: f.createdAt.toISOString(),
+                  createdAt: f.createdAt,
                   author: f.author,
                   resolvedBy: f.resolvedBy
                 }}

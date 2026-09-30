@@ -1,28 +1,28 @@
 import Link from "next/link";
 import AppShell, { requireMember } from "@/components/AppShell";
 import EmptyState from "@/components/EmptyState";
-import { prisma } from "@/lib/db";
-import { permissions } from "@/lib/permissions";
+import { bvGet } from "@/lib/bvApi";
 import { formatDate, ACTION_LABEL } from "@/lib/format";
 
 export default async function ActivityPage() {
   const member = await requireMember();
-  const canSeeAll = permissions.canViewAllProjects(member);
 
-  const logs = await prisma.activityLog.findMany({
-    where: canSeeAll ? {} : { OR: [{ actorId: member.id }, { project: { team: member.team } }] },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-    include: {
-      actor: { select: { name: true } },
-      project: { select: { id: true, projectName: true } },
-      version: { select: { versionNumber: true } }
-    }
-  });
+  // The API applies visibility (reviewers see everything, others their team).
+  const { logs } = await bvGet<{
+    logs: {
+      id: string;
+      action: string;
+      detail: string | null;
+      createdAt: string;
+      actor: { name: string };
+      project: { id: string; projectName: string } | null;
+      version: { versionNumber: number } | null;
+    }[];
+  }>("/activity", member.id);
 
   const groups = new Map<string, typeof logs>();
   for (const log of logs) {
-    const key = formatDate(log.createdAt);
+    const key = formatDate(new Date(log.createdAt));
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(log);
   }
