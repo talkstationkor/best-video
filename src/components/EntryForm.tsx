@@ -105,7 +105,7 @@ export default function EntryForm({
       return;
     }
 
-    if (team === "TMT" && !/^d{4}$/.test(pin)) {
+    if (team === "TMT" && !/^\d{4}$/.test(pin)) {
       setError(en ? "Enter the 4-digit TMT PIN." : "TMT 비밀번호 4자리를 입력해 주세요.");
       return;
     }
